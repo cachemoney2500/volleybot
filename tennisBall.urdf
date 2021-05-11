@@ -50,10 +50,10 @@
         <inertia ixx="1e-2" iyy="1e-2" izz="1e-2" ixy="0" ixz="0" iyz="0" />
       </inertial>
       <visual>
-         <origin xyz="0 0 0" rpy="0 0 0" /> 
+         <origin xyz="0 0 0" rpy="0 0 0" />
         <!-- <origin xyz="0 0 0.095" rpy="0 0 0" /> -->
         <geometry>
-          <mesh filename="/../../../CS225a_TennisBot/Objects/Visual/RegulationSizeTennisBall.obj" scale="1.0 1.0 1.0"/>
+          <mesh filename="/../../Objects/Visual/RegulationSizeTennisBall.obj" scale="1.0 1.0 1.0"/>
           <!-- <sphere radius="0.5" /> -->
         </geometry>
       </visual>
@@ -66,7 +66,7 @@
         <!-- <contact_coefficients mu="0.8" kp="0.8" kd="0.8"/> -->
       </collision>
     </link>
-    
+
     <joint name="joint1" type="prismatic">
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <parent link="link0"/>

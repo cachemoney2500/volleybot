@@ -1,0 +1,3 @@
+/Users/courtney/Library/cs225a/SAI/apps/volleybot/build/CMakeFiles/rebuild_cache.dir
+/Users/courtney/Library/cs225a/SAI/apps/volleybot/build/CMakeFiles/edit_cache.dir
+/Users/courtney/Library/cs225a/SAI/apps/volleybot/build/CMakeFiles/simviz.dir

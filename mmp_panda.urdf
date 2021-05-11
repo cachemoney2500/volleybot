@@ -38,12 +38,12 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/mmp_panda/meshes/panda_BaseCombo.obj" />
+        <mesh filename="../../model/mmp_panda/meshes/panda_BaseCombo.obj" />
       </geometry>
     </visual>
   </link>
 
-  <!-- PANDA ARM LINKS --> 
+  <!-- PANDA ARM LINKS -->
 <!--<link name="link0">
     <inertial>
       <origin xyz="0 0 0.05" rpy="0 0 0" />
@@ -59,7 +59,7 @@
         <geometry>
           <mesh filename="../../../model/panda/meshes/collision/link0.obj"/>
         </geometry>
-      </collision> 
+      </collision>
   </link> -->
   <link name="link1">
     <inertial>
@@ -69,7 +69,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link1.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link1.obj"/>
       </geometry>
     </visual>
     <!-- <collision>
@@ -86,7 +86,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link2.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link2.obj"/>
       </geometry>
     </visual>
     <!-- <collision>
@@ -103,7 +103,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link3.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link3.obj"/>
       </geometry>
     </visual>
     <!-- <collision>
@@ -120,7 +120,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link4.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link4.obj"/>
       </geometry>
     </visual>
 <!--       <collision>
@@ -137,7 +137,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link5.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link5.obj"/>
       </geometry>
     </visual>
 <!--       <collision>
@@ -154,7 +154,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link6.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link6.obj"/>
       </geometry>
     </visual>
     <!-- <collision>
@@ -165,13 +165,13 @@
   </link>
   <link name="link7">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 -0 0" /> 
+      <origin xyz="0 0 0" rpy="0 -0 0" />
       <mass value="0.03268873" /> <!-- racquet weight 11.3 oz from google -> .3203496kg/9.8m/s^2 = .03268873 !-->
       <inertia ixx="0.09" iyy="0.05" izz="0.07" ixy="0" ixz="0" iyz="0" />
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../model/panda/meshes/visual/link7.obj"/>
+        <mesh filename="../../model/panda/meshes/visual/link7.obj"/>
       </geometry>
     </visual>
     <!-- <collision>
@@ -189,7 +189,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="../../../CS225a_TennisBot/Objects/Visual/TennisRacquet.obj"/><!--CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"-->
+        <mesh filename="../../Objects/Visual/TennisRacquet.obj"/><!--CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"-->
 	<!--<box size="0.25 1.5 0.0002" />-->
       </geometry>
     </visual>
@@ -198,13 +198,13 @@
         <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
 	<box size="0.25 1.5 0.0002" />
       </geometry>
-    </collision> 
+    </collision>
     </link>
 
 
   <!-- JOINTS -->
   <joint name = "base_prismatic_x" type = "prismatic">
-    <origin xyz = "0 0 0" rpy = "0 0 0"/> 
+    <origin xyz = "0 0 0" rpy = "0 0 0"/>
     <parent link = "ground_link" />
     <child link= "base_x"/>
     <axis xyz = "1 0 0" />
@@ -212,7 +212,7 @@
   </joint>
 
   <joint name = "base_prismatic_y" type = "prismatic">
-    <origin xyz = "0 0 0" rpy = "0 0 0"/> 
+    <origin xyz = "0 0 0" rpy = "0 0 0"/>
     <parent link = "base_x" />
     <child link= "base_y"/>
     <axis xyz = "0 1 0" />
@@ -220,7 +220,7 @@
   </joint>
 
   <joint name = "base_revolute" type = "revolute">
-    <origin xyz = "0 0 0.0" rpy = "0 0 0"/> 
+    <origin xyz = "0 0 0.0" rpy = "0 0 0"/>
     <parent link = "base_y" />
     <child link= "base_link"/>
     <axis xyz = "0 0 1" />
@@ -228,7 +228,7 @@
   </joint>
 <!--
   <joint name = "base_prismatic_link0" type = "prismatic">
-    <origin xyz = "0 0 0.33" rpy = "0 0 0"/> 
+    <origin xyz = "0 0 0.33" rpy = "0 0 0"/>
     <parent link = "base_link" />
     <child link= "link0"/>
     <axis xyz = "0 0 1" />
@@ -370,5 +370,5 @@
     <limit lower="-10" upper="10" effort="9" velocity="0.8727" />
   </joint>
 -->
-  
-</robot> 
+
+</robot>
