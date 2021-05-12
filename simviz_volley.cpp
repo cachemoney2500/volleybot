@@ -177,10 +177,10 @@ int main() {
 	thread sim_thread(simulation, robot, object, sim, ui_force_widget);
 
 	// initialize glew
-	glewInitialize();
+	//glewInitialize();
 
 	// while window is open:
-	while (!glfwWindowShouldClose(window) && fSimulationRunning)
+	while (!glfwWindowShouldClose(window))// && fSimulationRunning)
 	{
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
