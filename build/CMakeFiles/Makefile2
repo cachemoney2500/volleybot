@@ -60,6 +60,43 @@ CMAKE_SOURCE_DIR = /Users/rohan/develop/class/cs225a/volleybot
 CMAKE_BINARY_DIR = /Users/rohan/develop/class/cs225a/volleybot/build
 
 #=============================================================================
+# Target rules for target CMakeFiles/simviz_jump.dir
+
+# All Build rule for target.
+CMakeFiles/simviz_jump.dir/all:
+	$(MAKE) -f CMakeFiles/simviz_jump.dir/build.make CMakeFiles/simviz_jump.dir/depend
+	$(MAKE) -f CMakeFiles/simviz_jump.dir/build.make CMakeFiles/simviz_jump.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles --progress-num=3,4 "Built target simviz_jump"
+.PHONY : CMakeFiles/simviz_jump.dir/all
+
+# Include target in all.
+all: CMakeFiles/simviz_jump.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/simviz_jump.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/simviz_jump.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles 0
+.PHONY : CMakeFiles/simviz_jump.dir/rule
+
+# Convenience name for target.
+simviz_jump: CMakeFiles/simviz_jump.dir/rule
+
+.PHONY : simviz_jump
+
+# clean rule for target.
+CMakeFiles/simviz_jump.dir/clean:
+	$(MAKE) -f CMakeFiles/simviz_jump.dir/build.make CMakeFiles/simviz_jump.dir/clean
+.PHONY : CMakeFiles/simviz_jump.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/simviz_jump.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
 # Target rules for target CMakeFiles/simviz.dir
 
 # All Build rule for target.
