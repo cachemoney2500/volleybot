@@ -98,6 +98,7 @@ int main() {
 	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
 	graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
+    graphics->getCamera(camera_name)->setClippingPlanes(0.01, 30.0);
 
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
@@ -117,7 +118,7 @@ int main() {
 
     // set co-efficient of restition to zero for force control
     // see issue: https://github.com/manips-sai/sai2-simulation/issues/1
-    sim->setCollisionRestitution(0.0);
+    sim->setCollisionRestitution(0.98);
 
     // set co-efficient of friction also to zero for now as this causes jitter
     // sim->setCoeffFrictionStatic(0.0);
@@ -257,6 +258,11 @@ int main() {
 			Eigen::Matrix3d m_pan; m_pan = Eigen::AngleAxisd(compass, -cam_up_axis);
 			camera_pos = camera_lookat + m_pan*(camera_pos - camera_lookat);
 		}
+        if (fTransXp || fTransXn || fTransYp || fTransYn || fTransZp || fTransZn || fRotPanTilt)
+        {
+            cout << "Updated camera position:\n" << camera_pos << endl;
+            cout << "Updated camera lookat:\n" << camera_lookat << endl;
+        }
 		graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
 		glfwGetCursorPos(window, &last_cursorx, &last_cursory);
 
