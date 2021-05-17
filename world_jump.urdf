@@ -5,7 +5,7 @@
 
 
 	<robot name="mmp_panda">
-		<model dir="./resources" path="jumping_panda.urdf" name="mmp_panda" />
+		<model dir="./resources" path="simple_legged_panda.urdf" name="mmp_panda" />
 		<origin xyz="0 -5.0 0.5" rpy="0 0 0" />
 	</robot>
 

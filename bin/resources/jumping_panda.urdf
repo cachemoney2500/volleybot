@@ -44,11 +44,11 @@
       <mass value = "64.6" />
       <inertia ixx="1.721" ixy="0.0" ixz="0.0" iyy="1.712" iyz="0.0" izz="2.030" />
     </inertial>
-    <visual>
+    <!-- <visual>
       <geometry>
         <mesh filename="../../model/mmp_panda/meshes/panda_BaseCombo.obj" />
       </geometry>
-    </visual>
+    </visual> -->
     <collision>
       <geometry>
         <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
@@ -58,7 +58,7 @@
   </link>
 
   <!-- LEGS -->
-  <link name = "leg_left_upper">
+  <!-- <link name = "leg_left_upper">
     <inertial>
       <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
       <mass value = "1.0" />
@@ -74,7 +74,165 @@
           <cylinder radius="0.03" length="0.5" />
       </geometry>
     </collision>
-  </link>
+</link> -->
+    <link name="LL_KOSY_L1">
+        <inertial>
+            <origin xyz="0.0140200000 0.0004000000 -0.0803900000" rpy="0 0 0" />
+            <mass value="2.7752200000" />
+            <inertia  ixx="0.0131418500" iyy="0.0127404000" izz="0.0055660580" ixy="0.0002490634" ixz="-0.0022168610" iyz="0.0003874600" />
+        </inertial>
+        <visual>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/left_lower_hip.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <geometry>
+                <capsule a="0.00832896 0.0145718 -0.112749" b="0.00832895 -0.0339701 -0.112749" radius="0.0755809"/>
+                <mesh filename="../../model/toro/meshes/obj/left_lower_hip.stl.obj"/>
+            </geometry>
+        </collision> -->
+      </link>
+
+    <link name="LL_KOSY_L23">
+        <inertial>
+            <origin xyz="0.0004400000 0.0134800000 -0.1181100000" rpy="0 0 0" />
+            <mass value="2.2450500000" />
+            <inertia  ixx="0.0186767700" iyy="0.0182876800" izz="0.0041391160" ixy="0.0000149158" ixz="0.0000216283" iyz="-0.0029088950" />
+        </inertial>
+         <visual>
+            <origin xyz="0 0 0" rpy= "-1.5708 0 0"/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link2.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <origin xyz="0 0 0" rpy= "-1.5708 0 0"/>
+            <geometry>
+                <capsule a="0 0.037 0" b="0 0.0 -0.17" radius="0.0764886"/>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link2.stl.obj"/>
+            </geometry>
+        </collision> -->
+      </link>
+
+    <link name="LL_KOSY_L4">
+        <inertial>
+            <origin xyz="0.0001800000 -0.0197800000 0.0475700000" rpy="0 0 0" />
+            <mass value="2.6274500000" />
+            <inertia  ixx="0.0181853400" iyy="0.0177957500" izz="0.0046458290" ixy="0.0000220452" ixz="0.0000193978" iyz="-0.0018474590" />
+        </inertial>       
+         <visual>
+            <origin  xyz="0 0 -0.399900088" rpy="0 3.1416 0"/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link3.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <origin  xyz="0 0 -0.399900088" rpy="0 3.1416 0"/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link3.stl.obj"/>
+            </geometry>
+        </collision> -->
+      </link>
+
+
+    <link name="LL_KOSY_L56">
+        <inertial>
+            <origin xyz="-0.0017200000 0.0075200000 -0.1697300000" rpy="0 0 0" />
+            <mass value="5.7035400000" />
+            <inertia  ixx="0.0904466300" iyy="0.0891587900" izz="0.0139048900" ixy="-0.0001614719" ixz="0.0007332664" iyz="-0.0098185250" />
+        </inertial>
+         <visual>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/left_calf.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/left_calf.stl.obj"/>
+            </geometry>
+        </collision> -->
+    </link>
+
+    <link name="RL_KOSY_L1">
+        <inertial>
+            <origin xyz="0.0140200000 -0.0003900000 -0.0807700000" rpy="0 0 0" />
+            <mass value="2.7752200000" />
+            <inertia  ixx="0.0132241200" iyy="0.0128226400" izz="0.0055660800" ixy="-0.0002500743" ixz="-0.0022333460" iyz="-0.0004034797" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/right_lower_hip.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <capsule a="0.00832896 0.0340227 -0.112749" b="0.00832895 -0.0145192 -0.112749" radius="0.0755809"/>
+                <mesh filename="../../model/toro/meshes/obj/right_lower_hip.stl.obj"/>
+            </geometry>
+        </collision>     -->    
+    </link>
+
+    <link name="RL_KOSY_L23">
+        <inertial>
+            <origin xyz="-0.0004400000 -0.0134800000 -0.1181100000" rpy="0 0 0" />
+            <mass value="2.2450500000" />
+            <inertia  ixx="0.0186767700" iyy="0.0182876800" izz="0.0041391160" ixy="0.0000149158" ixz="-0.0000216283" iyz="0.0029088950" />
+        </inertial>
+        <visual>
+        <origin  xyz="0 0 0" rpy="-1.5708 0 3.1416 "/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link2.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+        <origin  xyz="0 0 0" rpy="-1.5708 0 3.1416 "/>
+            <geometry>
+                <capsule a="0 -0.037 0" b="0 0.0 -0.17" radius="0.0764886"/>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link2.stl.obj"/>
+            </geometry>
+        </collision> -->
+    </link>
+
+    <link name="RL_KOSY_L4">
+        <inertial>
+            <origin xyz="-0.0001800000 0.0197800000 0.0475700000" rpy="0 0 0" />
+            <mass value="2.6274500000" />
+            <inertia  ixx="0.0181853400" iyy="0.0177957500" izz="0.0046458290" ixy="0.0000220452" ixz="-0.0000193978" iyz="0.0018474590" />
+        </inertial>
+        <visual>
+            <origin  xyz="0 0 -0.399900088" rpy="3.1416 0 0"/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link3.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <origin  xyz="0 0 -0.399900088" rpy="3.1416 0 0"/>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/kuka-link3.stl.obj"/>
+            </geometry>
+        </collision> -->
+    </link>
+
+    <link name="RL_KOSY_L56">
+        <inertial>
+            <origin xyz="-0.0013700000 -0.0074900000 -0.1697900000" rpy="0 0 0" />
+            <mass value="5.7035400000" />
+            <inertia  ixx="0.0904821100" iyy="0.0891927700" izz="0.0139187300" ixy="0.0002627257" ixz="0.0006447136" iyz="0.0098359460" />
+        </inertial>
+        <visual>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/right_calf.stl.obj"/>
+            </geometry>
+        </visual>
+<!--         <collision>
+            <geometry>
+                <mesh filename="../../model/toro/meshes/obj/right_calf.stl.obj"/>
+            </geometry>
+        </collision> -->
+    </link>
 
   <!-- PANDA ARM LINKS -->
 <!--<link name="link0">
@@ -414,12 +572,73 @@
   </joint>
 -->
 
- <joint name="joint_leg_left_upper" type="revolute">
+<!-- <joint name="joint_leg_left_upper" type="revolute">
       <origin rpy="0 3.14159 0" xyz="0 0.333 0"/>
       <parent link="base_link"/>
       <child link="leg_left_upper"/>
       <axis xyz="0 1 0"/>
       <limit effort="100" lower="-2.8973" upper="2.8973" velocity="100.0"/>
-  </joint>
+</joint> -->
 
+    <joint name="joint_leg_left1" type="fixed">
+        <origin xyz="0.0000000000 0.1000000000 0.1" rpy="0 0 0" />
+        <parent link="base_link"/>
+        <child link="LL_KOSY_L1"/> 
+        <limit lower="-0.7804" upper="1.5708" effort="176" velocity="1.9199" />
+        <axis xyz= " 1 0 0 "/>
+    </joint>
+
+    <joint name="joint_leg_left2" type="revolute">
+        <origin xyz="0.0000000000 0.0350000000 -0.1200000000" rpy="0 0 0" />
+        <parent link="LL_KOSY_L1"/>
+        <child link="LL_KOSY_L23"/> 
+        <limit lower="-2.0071" upper="1.5708" effort="100" velocity="2.7402" />
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="joint_leg_left3" type="fixed">
+        <parent link="LL_KOSY_L23"/>
+        <child link="LL_KOSY_L4"/> 
+        <limit lower="-2.0944" upper="2.0944" effort="100" velocity="2.7402" />
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <joint name="joint_leg_left4" type="revolute">
+        <origin xyz="0.0000000000 0.0000000000 -0.3999000880" rpy="0 0 0" />
+        <parent link="LL_KOSY_L4"/>
+        <child link="LL_KOSY_L56"/> 
+        <limit lower="-1.8326" upper="1.8326" effort="165" velocity="3.0718" />
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="joint_leg_right1" type="fixed">
+        <origin xyz="-0.0000000000 -0.1000000000 0.1" rpy="0 0 0" />
+        <parent link="base_link"/>
+        <child link="RL_KOSY_L1"/> 
+        <limit effort="176" velocity="1.9199" lower="-1.5708" upper="0.7854" />
+        <axis xyz="1 0 0"/>   
+    </joint>
+
+    <joint name="joint_leg_right2" type="revolute">
+        <origin xyz="-0.0000000000 -0.0350000000 -0.1200000000" rpy="0 0 0" />
+        <parent link="RL_KOSY_L1"/>
+        <child link="RL_KOSY_L23"/> 
+        <limit lower="-2.0071" upper="1.5708" effort="100" velocity="2.7402" />
+        <axis xyz="0 1 0"/>    
+    </joint>
+
+    <joint name="joint_leg_right3" type="fixed">
+        <parent link="RL_KOSY_L23"/>
+        <child link="RL_KOSY_L4"/> 
+        <limit lower="-2.0944" upper="2.0944" effort="100" velocity="2.7402" />
+        <axis xyz="0 0 1"/>     
+    </joint>
+
+    <joint name="joint_leg_right4" type="revolute">
+        <origin xyz="0.0000000000 0.0000000000 -0.3999000880" rpy="0 0 0" />
+        <parent link="RL_KOSY_L4"/>
+        <child link="RL_KOSY_L56"/> 
+        <limit lower="-1.8326" upper="1.8326" effort="165" velocity="3.0718" />
+         <axis xyz="0 1 0"/>
+    </joint>
 </robot>

@@ -20,7 +20,7 @@ using namespace Eigen;
 
 // specify urdf and robots
 const string world_file = "./resources/world_jump.urdf";
-const string robot_file = "./resources/jumping_panda.urdf";
+const string robot_file = "./resources/simple_legged_panda.urdf";
 const string obj_file = "./resources/tennisBall.urdf";
 const string robot_name = "mmp_panda";
 const string obj_name = "ball";
@@ -100,11 +100,15 @@ int main() {
 	//graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
     graphics->getCamera(camera_name)->setClippingPlanes(0.01, 30.0);
 
+	graphics->showLinkFrame(true, robot_name, "base_heading", 0.15);  // can add frames for different links
+	graphics->showLinkFrame(true, robot_name, "LL_KOSY_L56", 0.15);  // can add frames for different links
+	graphics->showLinkFrame(true, robot_name, "LL_KOSY_L4", 0.15);  // can add frames for different links
+
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	robot->_q(0) = -0.8;
 	robot->_q(2) = 0.8;
-	robot->_dq(2) = 0.2;
+	//robot->_dq(2) = 0.2;
 	robot->updateModel();
 
 	// load robot objects
@@ -368,10 +372,19 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 
 		// get gravity torques
 		robot->gravityVector(g);
-        g(2) = 0.0;
+        //g(2) = 0.0;
+
+        //int q_ctrl_index = 3;
+        //double Kq = 3.0;
+        //double q_des = 60*M_PI/180 * sin(2*M_PI*0.3*last_time);
+        //VectorXd q_des_vec = VectorXd::Zero(dof);
+        //q_des_vec(q_ctrl_index) = q_des;
+        //q_des_vec(0) = -0.8;
+        //q_des_vec(2) = 0.8;
 
 		// read arm torques from redis and apply to simulated robot
 		command_torques = redis_client.getEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY);
+        //command_torques = -Kq*(robot->_q - q_des_vec);
 
 		// get forces from interactive screen
 		ui_force_widget->getUIForce(ui_force);
@@ -380,12 +393,19 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 		if (fRobotLinkSelect)
 			sim->setJointTorques(robot_name, command_torques + ui_force_command_torques - robot->_M*kvj*robot->_dq + g);
 		else
-			sim->setJointTorques(robot_name, 0.0*command_torques - 0.0*robot->_M*kvj*robot->_dq + g);  // can comment out the joint damping if controller does this
+			sim->setJointTorques(robot_name, 1.0*command_torques - 1.0*robot->_M*kvj*robot->_dq + g);  // can comment out the joint damping if controller does this
 
 		// integrate forward
 		double curr_time = timer.elapsedTime() / time_slowdown_factor;
 		double loop_dt = curr_time - last_time;
-		sim->integrate(loop_dt);
+		//sim->integrate(loop_dt);
+
+        int q_ctrl_index = (int) redis_client.getEigenMatrixJSON("test::q_ctrl_index")(0);
+        //cout << "q ctrl: " << q_ctrl_index << endl;
+        double q_des = 60*M_PI/180 * sin(2*M_PI*0.3*last_time);
+        robot->_q.setZero();
+        robot->_q(q_ctrl_index) = q_des;
+	    sim->setJointPositions(robot_name, robot->_q);
 
 		// read joint positions, velocities, update model
 		sim->getJointPositions(robot_name, robot->_q);
@@ -404,9 +424,9 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 		// std::cout << "Sensed Force: " << sensed_force.transpose() << "Sensed Moment: " << sensed_moment.transpose() << std::endl;
 
         // query object position and ee pos/ori for camera detection
-		object->positionInWorld(obj_pos, "link6");
-		robot->positionInWorld(camera_pos, "link7");
-		robot->rotationInWorld(camera_ori, "link7");  // local to world frame
+		//object->positionInWorld(obj_pos, "link6");
+		//robot->positionInWorld(camera_pos, "link7");
+		//robot->rotationInWorld(camera_ori, "link7");  // local to world frame
 
 		// add position offset in world.urdf file since positionInWorld() doesn't account for this
 		obj_pos += obj_offset;
