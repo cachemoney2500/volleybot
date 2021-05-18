@@ -234,6 +234,46 @@
         </collision> -->
     </link>
 
+    <link name="LL_foot">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="1.5" />
+            <inertia  ixx="0.0904821100" iyy="0.0891927700" izz="0.0139187300" ixy="0.0002627257" ixz="0.0006447136" iyz="0.0098359460" />
+        </inertial>
+        <visual>
+          <geometry>
+            <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
+            <box size="0.2 0.2 0.05" />
+          </geometry>
+        </visual>
+    <collision>
+      <geometry>
+        <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
+        <box size="0.2 0.2 0.05" />
+      </geometry>
+    </collision>
+    </link>
+
+    <link name="RL_foot">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="1.5" />
+            <inertia  ixx="0.0904821100" iyy="0.0891927700" izz="0.0139187300" ixy="0.0002627257" ixz="0.0006447136" iyz="0.0098359460" />
+        </inertial>
+        <visual>
+          <geometry>
+            <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
+            <box size="0.2 0.2 0.05" />
+          </geometry>
+        </visual>
+    <collision>
+      <geometry>
+        <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
+        <box size="0.2 0.2 0.05" />
+      </geometry>
+    </collision>
+    </link>
+
   <!-- PANDA ARM LINKS -->
 <!--<link name="link0">
     <inertial>
@@ -379,15 +419,17 @@
       <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0" ixz="0" iyz="0" />
     </inertial>
     <visual>
+      <origin xyz="0 -0 0.05" rpy="0 -0 0" /><!--0.5842-->
       <geometry>
         <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
         <box size="0.25 0.25 0.05" />
       </geometry>
     </visual>
     <collision>
+      <origin xyz="0 -0 0.05" rpy="0 -0 0" /><!--0.5842-->
       <geometry>
         <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
-	<box size="0.25 1.5 0.0002" />
+	<box size="0.25 0.25 0.05" />
       </geometry>
     </collision>
     </link>
@@ -611,6 +653,14 @@
         <axis xyz="0 1 0"/>
     </joint>
 
+    <joint name="joint_leg_left5" type="revolute">
+        <origin xyz="0.0000000000 0.0000000000 -0.3999000880" rpy="0 0 0" />
+        <parent link="LL_KOSY_L56"/> 
+        <child link="LL_foot"/>
+        <limit lower="-1.8326" upper="1.8326" effort="165" velocity="3.0718" />
+         <axis xyz="0 1 0"/>
+    </joint>
+
     <joint name="joint_leg_right1" type="fixed">
         <origin xyz="-0.0000000000 -0.1000000000 0.1" rpy="0 0 0" />
         <parent link="base_link"/>
@@ -638,6 +688,14 @@
         <origin xyz="0.0000000000 0.0000000000 -0.3999000880" rpy="0 0 0" />
         <parent link="RL_KOSY_L4"/>
         <child link="RL_KOSY_L56"/> 
+        <limit lower="-1.8326" upper="1.8326" effort="165" velocity="3.0718" />
+         <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="joint_leg_right5" type="revolute">
+        <origin xyz="0.0000000000 0.0000000000 -0.3999000880" rpy="0 0 0" />
+        <parent link="RL_KOSY_L56"/> 
+        <child link="RL_foot"/>
         <limit lower="-1.8326" upper="1.8326" effort="165" velocity="3.0718" />
          <axis xyz="0 1 0"/>
     </joint>
