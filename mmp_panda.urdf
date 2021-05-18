@@ -43,7 +43,7 @@
     </visual>
   </link>
 
-  <!-- PANDA ARM LINKS -->
+  <!-- PANDA ARM LINKS --> 
 <!--<link name="link0">
     <inertial>
       <origin xyz="0 0 0.05" rpy="0 0 0" />
@@ -59,7 +59,7 @@
         <geometry>
           <mesh filename="../../../model/panda/meshes/collision/link0.obj"/>
         </geometry>
-      </collision>
+      </collision> 
   </link> -->
   <link name="link1">
     <inertial>
@@ -165,8 +165,8 @@
   </link>
   <link name="link7">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 -0 0" />
-      <mass value="0.03268873" /> <!-- racquet weight 11.3 oz from google -> .3203496kg/9.8m/s^2 = .03268873 !-->
+      <origin xyz="0 0 0.17" rpy="0 -0 0" />
+      <mass value="3.0" />
       <inertia ixx="0.09" iyy="0.05" izz="0.07" ixy="0" ixz="0" iyz="0" />
     </inertial>
     <visual>
@@ -174,6 +174,12 @@
         <mesh filename="../../model/panda/meshes/visual/link7.obj"/>
       </geometry>
     </visual>
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 -0 0" />
+      <geometry>
+        <box size="0.15 0.15 0.01"/>
+      </geometry>
+    </visual> 
     <!-- <collision>
       <geometry>
         <mesh filename="../../../model/panda/meshes/collision/link7.obj"/>
@@ -181,46 +187,26 @@
     </collision> -->
   </link>
 
-  <link name="racquetlink">
-    <inertial>
-      <origin xyz="0 -0 0.0" rpy="0 -0 0" /><!--0.5842-->
-      <mass value=".3203496" />
-      <inertia ixx="0.3" iyy="0.3" izz="0.3" ixy="0" ixz="0" iyz="0" />
-    </inertial>
-    <visual>
-      <geometry>
-        <mesh filename="../../Objects/Visual/TennisRacquet.obj"/><!--CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"-->
-	<!--<box size="0.25 1.5 0.0002" />-->
-      </geometry>
-    </visual>
-    <collision>
-      <geometry>
-        <!--<mesh filename="../../../CS225a_TennisBot/Objects/Visual/CollisionMeshRacquetBasic.obj"/>-->
-	<box size="0.25 1.5 0.0002" />
-      </geometry>
-    </collision>
-    </link>
-
 
   <!-- JOINTS -->
   <joint name = "base_prismatic_x" type = "prismatic">
-    <origin xyz = "0 0 0" rpy = "0 0 0"/>
+    <origin xyz = "0 0 0" rpy = "0 0 0"/> 
     <parent link = "ground_link" />
     <child link= "base_x"/>
     <axis xyz = "1 0 0" />
-    <limit effort="0" velocity="2.0" />
+    <limit effort="87" lower="-2.8973" upper="2.9873" velocity="2.1750" />
   </joint>
 
   <joint name = "base_prismatic_y" type = "prismatic">
-    <origin xyz = "0 0 0" rpy = "0 0 0"/>
+    <origin xyz = "0 0 0" rpy = "0 0 0"/> 
     <parent link = "base_x" />
     <child link= "base_y"/>
     <axis xyz = "0 1 0" />
-    <limit effort="0" velocity="2.0" />
+    <limit effort="87" lower="-2.8973" upper="2.9873" velocity="2.1750" />
   </joint>
 
   <joint name = "base_revolute" type = "revolute">
-    <origin xyz = "0 0 0.0" rpy = "0 0 0"/>
+    <origin xyz = "0 0 0.0" rpy = "0 0 0"/> 
     <parent link = "base_y" />
     <child link= "base_link"/>
     <axis xyz = "0 0 1" />
@@ -228,7 +214,7 @@
   </joint>
 <!--
   <joint name = "base_prismatic_link0" type = "prismatic">
-    <origin xyz = "0 0 0.33" rpy = "0 0 0"/>
+    <origin xyz = "0 0 0.33" rpy = "0 0 0"/> 
     <parent link = "base_link" />
     <child link= "link0"/>
     <axis xyz = "0 0 1" />
@@ -236,13 +222,13 @@
   </joint>
 -->
   <joint name="joint1" type="revolute">
-      <safety_controller k_position="100.0" k_velocity="100.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
       <origin rpy="0 0 1.5708" xyz="0 0 0.333"/>
       <parent link="base_link"/>
       <child link="link1"/>
       <axis xyz="0 0 1"/>
       <calibration falling="-80.0" />
-      <limit effort="100" lower="-2.8973" upper="2.8973" velocity="100.0"/>
+      <limit effort="87" lower="-2.8973" upper="2.8973" velocity="2.1750"/>
   </joint>
 
   <joint name="joint2" type="revolute">
@@ -298,15 +284,6 @@
       <origin rpy="1.57079632679 0 0" xyz="0.088 0 0"/>
       <parent link="link6"/>
       <child link="link7"/>
-      <axis xyz="0 0 1"/>
-      <limit effort="12" lower="-2.8973" upper="2.8973" velocity="2.6100"/>
-  </joint>
-
-<joint name="joint8" type="fixed">
-      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-2.8973" soft_upper_limit="2.8973"/>
-      <origin rpy="1.57079632679 0 0" xyz="0.0 0 0"/>
-      <parent link="link7"/>
-      <child link="racquetlink"/>
       <axis xyz="0 0 1"/>
       <limit effort="12" lower="-2.8973" upper="2.8973" velocity="2.6100"/>
   </joint>
@@ -370,5 +347,5 @@
     <limit lower="-10" upper="10" effort="9" velocity="0.8727" />
   </joint>
 -->
-
-</robot>
+  
+</robot> 

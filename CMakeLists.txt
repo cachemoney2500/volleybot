@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8.12)
 project (volleybot)
 SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include")
-SET(CMAKE_BUILD_TYPE "Release")
+SET(CMAKE_BUILD_TYPE "Debug")
 
 # set common dependencies
 # - eigen3
@@ -77,7 +77,7 @@ add_definitions(${SAI2-PRIMITIVES_DEFINITIONS})
 # create an executable
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${VOLLEY_BINARY_DIR})
 #ADD_EXECUTABLE (controller controller.cpp ${CS225A_COMMON_SOURCE})
-ADD_EXECUTABLE (simviz simviz_volley.cpp ${CS225A_COMMON_SOURCE})
+ADD_EXECUTABLE (simviz simviz.cpp ${CS225A_COMMON_SOURCE})
 
 # and link the library against the executable
 #TARGET_LINK_LIBRARIES (controller ${CS225A_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
