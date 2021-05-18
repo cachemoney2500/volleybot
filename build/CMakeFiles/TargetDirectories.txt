@@ -1,4 +1,0 @@
-/Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles/rebuild_cache.dir
-/Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles/edit_cache.dir
-/Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles/simviz_jump.dir
-/Users/rohan/develop/class/cs225a/volleybot/build/CMakeFiles/simviz.dir
