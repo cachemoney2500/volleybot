@@ -22,7 +22,7 @@ using namespace Eigen;
 
 const string world_file = "./resources/world.urdf";
 const string robot_file = "./resources/mmp_panda.urdf";
-const string obj_file = "./resources/tennisBall.urdf";
+const string obj_file = "./resources/volleyBall.urdf";
 const string robot_name = "mmp_panda";
 const string obj_name = "ball";
 const string camera_name = "camera_fixed";

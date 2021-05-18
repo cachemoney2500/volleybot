@@ -10,8 +10,8 @@
 	</robot>
 
 	<robot name="ball">
-		<model dir="./resources" path="tennisBall.urdf" name="ball" />
-		<origin xyz="0.0 5.0 2.0" rpy="0 0 0" />
+		<model dir="./resources" path="volleyBall.urdf" name="ball" />
+		<origin xyz="0.0 5.0 3.0" rpy="0 0 0" />
 
 	</robot>
 
@@ -43,7 +43,7 @@
 		<visual>
 	        <origin xyz="0.0 0.0 -0.0001" rpy="0 0 0" />
 	        <geometry>
-	            <mesh filename="./resources/../../Objects/Visual/OfficialCourtAdjusted.obj" scale="1.0 1.0 1.0"/>
+	            <mesh filename="./resources/../../Objects/Visual/Volley/Court.obj" scale="1.0 1.0 1.0"/>
 	        </geometry>
 	    </visual>
 
@@ -57,7 +57,7 @@
 
 	</static_object>
 
-	<static_object name="Net">
+ 	<static_object name="Net">
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 		<!-- <collision>
 	        <origin xyz="0.0 0.0 -0.0001" rpy="0 0 0" />
@@ -65,9 +65,9 @@
 	            <mesh filename="./resources/../../../CS225a_TennisBot/Objects/Visual/TennisNetCollisionMesh.obj" scale="1.0 1.0 1.0"/>
 	        </geometry>
 	    </collision> -->
-	    <visual>
+ 	    <visual>
 	    	<!-- <origin xyz="0.0 0.0 -0.1" rpy="0 0 0" /> -->
-	        <origin xyz="0.0 0.0 -0.0001" rpy="0 0 1.57079632679" />
+	        <origin xyz="0.0 0.0 1.0" rpy="0 0 1.57079632679" />
 	        <geometry>
 	            <mesh filename="./resources/../../Objects/Visual/TennisNet.obj" scale="1.0 1.0 1.0"/>
 	        </geometry>
