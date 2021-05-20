@@ -27,6 +27,7 @@ const string robot_name = "mmp_panda";
 const string obj_name = "ball";
 const string camera_name = "camera_fixed";
 const string ee_link_name = "link7";
+const string obj_link_name = "link6";
 
 // redis keys:
 // - write:
@@ -351,6 +352,20 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 
 		//update last time
 		last_time = curr_time;
+        
+        if (object->_environmental_contacts.size() != 0) {
+                Vector3d ball_launch_pos;
+                object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+                Vector3d ball_vel;
+                object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
+            double time_flight = (-ball_vel(2) + sqrt(pow(ball_vel(2),2.0) - 4.0*(-9.81/2.0)*ball_launch_pos(2)))/(2*(-9.81/2)); // quadratic equation
+                double x_f = ball_launch_pos(0)*time_flight;
+                double y_f = ball_launch_pos(1)*time_flight;
+                Vector3d predictedLanding = Vector3d(x_f, y_f, 0);
+                
+                cout << "Predicted landing" << ' ' << predictedLanding(0) << ' ' << predictedLanding(1) << ' ' << predictedLanding(2) << "\n";
+            }
+        
 	}
 
 	double end_time = timer.elapsedTime();
