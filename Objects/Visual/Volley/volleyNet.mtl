@@ -1,0 +1,57 @@
+# Blender MTL File: 'None'
+# Material Count: 5
+
+newmtl Net.001
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/sergio16/apps/volleybot/Objects/Visual/000000.png
+
+newmtl Net_Tape.001
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.911394 0.911394 0.911394
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/sergio16/apps/volleybot/Objects/Visual/ffffff.png
+
+newmtl None
+Ns 500.000001
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.800000 0.800000 0.800000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/sergio16/apps/volleybot/Objects/Visual/123624.png
+
+newmtl None.001
+Ns 500.000001
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.800000 0.800000 0.800000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/sergio16/apps/volleybot/Objects/Visual/123624.png
+
+newmtl Post.001
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.006020 0.036876 0.017689
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd /home/sergio16/apps/volleybot/Objects/Visual/123624.png

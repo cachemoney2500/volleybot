@@ -71,13 +71,20 @@
 	        <geometry>
 	            <mesh filename="./resources/../../Objects/Visual/TennisNet.obj" scale="1.0 1.0 1.0"/>
 	        </geometry>
-<!-- 	        <material name="material">
+<!--  	        <material name="material">
 		        <color rgba="1 0.5 0.5 .1" />
 	        </material> -->
-	        <!-- <material name="material">
-		        <texture filename="./resources/../../../CS225a_TennisBot/Objects/Visual/TennisNet.mtl"/>
+<!-- 	         <material name="material">
+		        <texture filename="./resources/../../../CS225a_TennisBot/Objects/Visual/Volley/volleytNet.mtl"/>
 	        </material> -->
 	    </visual>
+	    <visual>
+	    	<origin xyz="0.0 0.0 1.0" rpy="0 0 1.57079632679" />
+	        <geometry>
+	            <mesh filename="./resources/../../Objects/Visual/Volley/Posts2.obj" scale="1.0 1.0 1.0"/>
+	        </geometry>
+	    </visual>
+
 	    <collision>
 	        <origin xyz="0.0 0.0 1.5" rpy="0 0 0" />
 	        <geometry>
