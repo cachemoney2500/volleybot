@@ -42,6 +42,28 @@ unsigned long long controller_counter = 0;
 
 const bool inertia_regularization = true;
 
+Vector3d forwardTracking (double time_forward, double time_air) {
+    Vector3d ball_launch_pos;
+    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+    Vector3d ball_launch_vel;
+    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
+    double x_f = ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
+    double y_f = ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
+    double z_f = ball_launch_pos(2) + ball_launch_vel(2)*(time_forward + time_air) - (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
+    return predictedLanding = Vector3d(x_f, y_f, z_f);
+}
+
+Vector3d backwardTracking (double time_forward, double time_air) {
+    Vector3d ball_launch_pos;
+    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+    Vector3d ball_launch_vel;
+    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
+    double x_f = -ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
+    double y_f = -ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
+    double z_f = ball_launch_pos(2) + -ball_launch_vel(2)*(time_forward + time_air) + (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
+    return predictedLanding = Vector3d(x_f, y_f, z_f);
+}
+
 int main() {
 
 	JOINT_ANGLES_KEY = "sai2::cs225a::project::sensors::q";

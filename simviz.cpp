@@ -35,6 +35,7 @@ const std::string JOINT_ANGLES_KEY = "sai2::cs225a::project::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "sai2::cs225a::project::sensors::dq";
 const std::string OBJ_POSITION_KEY  = "cs225a::robot::ball::sensors::q";
 const std::string OBJ_VELOCITIES_KEY = "cs225a::robot::ball::sensors::dq";
+const std::string OBJ_PREDICT_KEY = "cs225a::robot::ball::sensors::predict";
 // - read
 const std::string JOINT_TORQUES_COMMANDED_KEY = "sai2::cs225a::project::actuators::fgc";
 
@@ -309,6 +310,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 
 	Eigen::VectorXd ui_force_command_torques;
 	ui_force_command_torques.setZero();
+    
+    // Init prediction
+    Eigen::Vector3d predictedLanding;
+    predictedLanding.setZero();
 
 	while (fSimulationRunning) {
 		fTimerDidSleep = timer.waitForNextLoop();
@@ -349,23 +354,23 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 		// write new object state to redis
 		redis_client.setEigenMatrixJSON(OBJ_POSITION_KEY, object->_q);
 		redis_client.setEigenMatrixJSON(OBJ_VELOCITIES_KEY, object->_dq);
-
-		//update last time
-		last_time = curr_time;
         
         if (object->_environmental_contacts.size() != 0) {
                 Vector3d ball_launch_pos;
                 object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-                Vector3d ball_vel;
-                object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
-            double time_flight = (-ball_vel(2) + sqrt(pow(ball_vel(2),2.0) - 4.0*(-9.81/2.0)*ball_launch_pos(2)))/(2*(-9.81/2)); // quadratic equation
-                double x_f = ball_launch_pos(0)*time_flight;
-                double y_f = ball_launch_pos(1)*time_flight;
-                Vector3d predictedLanding = Vector3d(x_f, y_f, 0);
-                
-                cout << "Predicted landing" << ' ' << predictedLanding(0) << ' ' << predictedLanding(1) << ' ' << predictedLanding(2) << "\n";
+                Vector3d ball_launch_vel;
+                object->linearVelocityInWorld(ball_launch_vel, obj_link_name, Vector3d::Zero());
+                double time_flight = (-ball_launch_vel(2) + sqrt(pow(ball_launch_vel(2),2.0) - 4.0*(-9.81/2.0)*ball_launch_pos(2)))/(2*(-9.81/2)); // quadratic equation
+                double x_f = ball_launch_vel(0)*time_flight + ball_launch_pos(0);
+                double y_f = ball_launch_vel(1)*time_flight + ball_launch_pos(1);
+                predictedLanding = Vector3d(x_f, y_f, 0);
             }
         
+        // write predicted landing
+        redis_client.setEigenMatrixJSON(OBJ_PREDICT_KEY, predictedLanding);
+        
+        //update last time
+        last_time = curr_time;
 	}
 
 	double end_time = timer.elapsedTime();
