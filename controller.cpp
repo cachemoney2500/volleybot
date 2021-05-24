@@ -1,5 +1,5 @@
 // This example application loads a URDF world file and simulates two robots
-// with physics and contact in a Dynamics3D virtual world. A graphics model of it is also shown using 
+// with physics and contact in a Dynamics3D virtual world. A graphics model of it is also shown using
 // Chai3D.
 
 #include "Sai2Model.h"
@@ -64,6 +64,17 @@ Vector3d backwardTracking (double time_forward, double time_air) {
     return predictedLanding = Vector3d(x_f, y_f, z_f);
 }
 
+//computes the desired normal vector of the end effector surface
+//takes in the incoming ball velocity, end effector position, & desired
+//position after making contact 
+Vector3d normal_vector(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des){
+  double tf = -2*vel_incident(2)/9.81;
+  Vector3d a;
+  a << 0,0,-9.81
+  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
+  return (.5*(vel_incident+vel_des)).normalized();
+}
+
 int main() {
 
 	JOINT_ANGLES_KEY = "sai2::cs225a::project::sensors::q";
@@ -100,7 +111,7 @@ int main() {
 #else
 	posori_task->_use_velocity_saturation_flag = true;
 #endif
-	
+
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
 	posori_task->_kp_pos = 200.0;
 	posori_task->_kv_pos = 20.0;
@@ -128,7 +139,7 @@ int main() {
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
+	timer.setLoopFrequency(1000);
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
 
@@ -143,7 +154,7 @@ int main() {
 
 		// update model
 		robot->updateModel();
-	
+
 		if(state == JOINT_CONTROLLER)
 		{
 			// update task model and set hierarchy
