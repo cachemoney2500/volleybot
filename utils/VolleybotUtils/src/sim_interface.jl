@@ -1,14 +1,16 @@
 using Redis
 using DynamicsAndControl
-using REPL
 using Infiltrator
 
 get_connection() = RedisConnection()
 
 KEYS = Dict([
              :cflag => "cs225a::simulation::controller_start_flag",
-             :t_control => "cs225a::controller::time",
+             :k_control => "cs225a::controller::k_iter",
+             :k_sim => "cs225a::simulation::k_iter",
              :cmdtrq => "cs225a::volleybot::robot1::actuators::fgc",
+             :q => "cs225a::volleybot::robot1::sensors::q",
+             :dq => "cs225a::volleybot::robot1::sensors::dq",
             ])
 
 function setup()
@@ -26,9 +28,19 @@ function record(conn)
     end
 
     while parse(Bool, get(conn, KEYS[:cflag])) == true
-        t_control = parse(Float64, get(conn, KEYS[:t_control]))
+        k_control = parse(Int, get(conn, KEYS[:k_control]))
+        t_control = k_control * 0.001
         cmdtrq = parse_eigen_array(get(conn, KEYS[:cmdtrq]))
-        log!(logger,:controller, t_control, (;cmdtrq))
+        q = parse_eigen_array(get(conn, KEYS[:q]))
+        dq = parse_eigen_array(get(conn, KEYS[:dq]))
+        log!(logger,:controller, t_control, (;cmdtrq, q, dq))
+
+        k_sim = parse(Int, get(conn, KEYS[:k_sim]))
+        t_sim = k_sim * 0.001
+        q = parse_eigen_array(get(conn, KEYS[:q]))
+        dq = parse_eigen_array(get(conn, KEYS[:dq]))
+        t_diff = t_sim - t_control
+        log!(logger,:sim, t_sim, (;q, dq, t_diff))
     end
 
     return DynamicsAndControl.SimulationDataset(logger)
