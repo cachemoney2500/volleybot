@@ -14,8 +14,6 @@
 bool runloop = true;
 void sighandler(int sig)
 { runloop = false; }
-bool fSimulationLoopDone = false;
-bool fControllerLoopDone = false;
 
 // function for converting string to bool
 bool string_to_bool(const std::string& x);
@@ -38,12 +36,12 @@ const std::string BOUNCE_DEMO_CONFIGS  = "cs225a::volleybot::demo::bounce_config
 const std::string CUSTOM_HIP_GOAL_KEY  = "cs225a::volleybot::robot1::input::hip_goal";
 
 const std::string CONTROLLER_START_FLAG  = "cs225a::simulation::controller_start_flag";
-const std::string SIMULATION_LOOP_DONE_KEY = "cs225a::simulation::done";
-const std::string CONTROLLER_LOOP_DONE_KEY = "cs225a::controller::done";
-const std::string CONTROLLER_TIME = "cs225a::controller::time";
+const std::string SIMULATION_LOOP_ITERATION = "cs225a::simulation::k_iter";
+const std::string CONTROLLER_LOOP_ITERATION = "cs225a::controller::k_iter";
 
-
-unsigned long long controller_counter = 0;
+bool controller_start_flag = false;
+unsigned long long k_iter_ctrl = 0;
+unsigned long long k_iter_sim = 0;
 
 const bool inertia_regularization = true;
 
@@ -76,8 +74,8 @@ int main() {
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
 	joint_task->_kp = 250.0;
 	joint_task->_kv = 15.0;
-	joint_task->_saturation_velocity(0) = 12.0;
-	joint_task->_saturation_velocity(1) = 12.0;
+	joint_task->_saturation_velocity(0) = 2.0;
+	joint_task->_saturation_velocity(1) = 2.0;
 	//joint_task->_ki = 30.0;
 
 	// create a timer
@@ -87,14 +85,16 @@ int main() {
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
 
-    redis_client.set(CONTROLLER_TIME, std::to_string(controller_counter*0.001));
+    k_iter_ctrl = 0;
+    redis_client.set(SIMULATION_LOOP_ITERATION, std::to_string(0));
+    redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(0));
 
 	while (runloop) {
-		// read simulation state
-        fSimulationLoopDone = string_to_bool(redis_client.get(SIMULATION_LOOP_DONE_KEY));
-
-		// run controller loop when simulation loop is done
-		if (fSimulationLoopDone) {
+		// run controller loop when simulation loop is done (sim has caught up)
+        k_iter_sim = std::stoull(redis_client.get(SIMULATION_LOOP_ITERATION));
+        controller_start_flag = redis_client.get(CONTROLLER_START_FLAG) == "true";
+		if (controller_start_flag && k_iter_ctrl == k_iter_sim) {
+            //cout << "starting control" << endl;
             double time = timer.elapsedTime() - start_time;
 
             // read robot state from redis
@@ -154,13 +154,13 @@ int main() {
             G_control_axes(1,1) = 0.0;
 
             Matrix3d Kp_leg = Matrix3d::Zero();
-            Kp_leg(0,0) = 100.0;
-            Kp_leg(1,1) = 100.0;
+            Kp_leg(0,0) = 20.0;
+            Kp_leg(1,1) = 20.0;
             Kp_leg(2,2) = 20.0;
 
             Matrix3d Kv_leg = Matrix3d::Zero();
-            Kv_leg(0,0) = 10.0;
-            Kv_leg(1,1) = 10.0;
+            Kv_leg(0,0) = 5.0;
+            Kv_leg(1,1) = 5.0;
             Kv_leg(2,2) = 5.0;
 
             Vector3d dr_des = Vector3d(0.0, 0.0, dz_hip_foot);
@@ -172,7 +172,7 @@ int main() {
             Vector3d f_foot_left = -Kp_leg*G_control_axes*(dr_foot_left - dr_des) - Kv_leg*G_control_axes*(dv_foot_left - dv_des) + f_foot_gravity_feedforward;
             Vector3d f_foot_right = -Kp_leg*G_control_axes*(dr_foot_right - dr_des) - Kv_leg*G_control_axes*(dv_foot_right - dv_des) + f_foot_gravity_feedforward;
 
-            if (controller_counter % 100 == 0)
+            if (k_iter_ctrl % 100 == 0)
             {
                 //cout << "dr l:\n" << dr_foot_left << endl;
                 //cout << "dr r:\n" << dr_foot_right << endl;
@@ -191,12 +191,12 @@ int main() {
             //J_balance_full << Jv_foot_left_proj, Jv_foot_right_proj;
             MatrixXd N_balance = MatrixXd::Identity(dof, dof);
             //N_balance(2, 2) = 0.0;
-            N_balance(11, 11) = 0.0;
-            N_balance(12, 12) = 0.0;
-            N_balance(13, 13) = 0.0;
-            N_balance(14, 14) = 0.0;
-            N_balance(15, 15) = 0.0;
-            N_balance(16, 16) = 0.0;
+            //N_balance(11, 11) = 0.0;
+            //N_balance(12, 12) = 0.0;
+            //N_balance(13, 13) = 0.0;
+            //N_balance(14, 14) = 0.0;
+            //N_balance(15, 15) = 0.0;
+            //N_balance(16, 16) = 0.0;
             //robot->nullspaceMatrix(N_balance, J_balance_full);
             joint_task->updateTaskModel(N_balance);
             //cout << "N balance:\n" << N_balance << endl;
@@ -226,7 +226,7 @@ int main() {
             //g(2) *= 0.95;
             //joint_task_torques(2) *= 0.0;
 
-            if (controller_counter % 100 == 0)
+            if (k_iter_ctrl % 100 == 0)
             {
                 //cout << "dq:\n" << robot->_dq << endl;
                 //cout << "joint torque:\n" << joint_task_torques << endl;
@@ -240,34 +240,31 @@ int main() {
                 //cout << "m fl:" << m_feet(13) << endl;
             }
 
-
-            command_torques =  g + tau_balance + joint_task_torques + m_feet;
-            command_torques(0) = 30.0;
+            //command_torques =  g + tau_balance + joint_task_torques + m_feet;
+            command_torques =  g + joint_task_torques;
+            //command_torques(0) = 30.0;
             //command_torques =  N_no_external*g + tau_balance;
             //cout << "cmd trq:\n" << command_torques << endl;
 
             // send to redis
             redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
-            redis_client.set(CONTROLLER_TIME, std::to_string(controller_counter*0.001));
 
-            // ask for next simulation loop
-            fSimulationLoopDone = false;
-            redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-		
-            controller_counter++;
+            k_iter_ctrl++;
+            //cout << "control count: " << k_iter_ctrl << endl;
+            // tell sim we have completed control
+            redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(k_iter_ctrl));
         }
-
-		// controller loop is done
-        fControllerLoopDone = true;
-        redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 	}
+
+	command_torques.setZero();
+	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";
     std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
     //std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
     //std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
-    std::cout << "Control Loop updates   : " << controller_counter << "\n";
+    std::cout << "Control Loop updates   : " << k_iter_ctrl << "\n";
 
 	return 0;
 }
