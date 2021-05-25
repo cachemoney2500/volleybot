@@ -1,5 +1,5 @@
 module VolleybotUtils
 
-include("urdf_creators.jl")
+include("sim_interface.jl")
 
 end # module

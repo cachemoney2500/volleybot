@@ -4,4 +4,7 @@ authors = ["Rohan Punnoose <rohanjp@stanford.edu>"]
 version = "0.1.0"
 
 [deps]
+DynamicsAndControl = "d84a7430-30e0-456f-b409-392825a7994c"
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 LightXML = "9c8b4983-aa76-5018-a973-4c85ecc9e179"
+Redis = "0cf705f9-a9e2-50d1-a699-2b372a39b750"
