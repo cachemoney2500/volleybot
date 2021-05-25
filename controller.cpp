@@ -64,15 +64,16 @@ Vector3d backwardTracking (double time_forward, double time_air) {
     return predictedLanding = Vector3d(x_f, y_f, z_f);
 }
 
-//computes the desired normal vector of the end effector surface
-//takes in the incoming ball velocity, end effector position, & desired
-//position after making contact 
-Vector3d normal_vector(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des){
+Matrix3d compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init){
   double tf = -2*vel_incident(2)/9.81;
   Vector3d a;
   a << 0,0,-9.81
   Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
-  return (.5*(vel_incident+vel_des)).normalized();
+  Vector3d z_des = (.5*(vel_incident+vel_des)).normalized();
+  Matrix3d R_des = R_init;
+  R_des.col(1) = R_des.col(0).cross(z_des);
+  R_des.col(2) = z_des;
+  return R_des;
 }
 
 int main() {
