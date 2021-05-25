@@ -74,8 +74,8 @@ int main() {
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
 	joint_task->_kp = 250.0;
 	joint_task->_kv = 15.0;
-	joint_task->_saturation_velocity(0) = 2.0;
-	joint_task->_saturation_velocity(1) = 2.0;
+	joint_task->_saturation_velocity(0) = 9.0;
+	joint_task->_saturation_velocity(1) = 9.0;
 	//joint_task->_ki = 30.0;
 
 	// create a timer
@@ -228,6 +228,11 @@ int main() {
 
             if (k_iter_ctrl % 100 == 0)
             {
+                //cout << "sdv:\n" << joint_task->_step_desired_velocity << endl;
+                //cout << "vsat:\n" << joint_task->_saturation_velocity << endl;
+                //cout << "M:\n" << joint_task->_M_modified << endl;
+                //cout << "tf:\n" << joint_task->_task_force << endl;
+                //cout << "trq:\n" << joint_task_torques << endl;
                 //cout << "dq:\n" << robot->_dq << endl;
                 //cout << "joint torque:\n" << joint_task_torques << endl;
                 //cout << "M:\n" << robot->_M << endl;
@@ -242,7 +247,7 @@ int main() {
 
             //command_torques =  g + tau_balance + joint_task_torques + m_feet;
             command_torques =  g + joint_task_torques;
-            //command_torques(0) = 30.0;
+            //command_torques(0) = 150.0;
             //command_torques =  N_no_external*g + tau_balance;
             //cout << "cmd trq:\n" << command_torques << endl;
 

@@ -430,10 +430,14 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             VectorXd custom_q = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
             sim->setJointPositions(robot_name, custom_q);
             robot->_q = custom_q;
+            robot->_dq = VectorXd::Zero(dof);
+            robot->updateModel();
 
             VectorXd ball_pos = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
             sim->setJointPositions(obj_name, ball_pos);
             object->_q = ball_pos;
+            object->_dq = Vector3d::Zero();
+            object->updateModel();
             
             redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
             redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
