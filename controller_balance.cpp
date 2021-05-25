@@ -74,8 +74,8 @@ int main() {
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
 	joint_task->_kp = 250.0;
 	joint_task->_kv = 15.0;
-	joint_task->_saturation_velocity(0) = 9.0;
-	joint_task->_saturation_velocity(1) = 9.0;
+	joint_task->_saturation_velocity(0) = 4.0;
+	joint_task->_saturation_velocity(1) = 4.0;
 	//joint_task->_ki = 30.0;
 
 	// create a timer
@@ -189,7 +189,11 @@ int main() {
             //exit(1);
             //MatrixXd J_balance_full(6, dof);
             //J_balance_full << Jv_foot_left_proj, Jv_foot_right_proj;
-            MatrixXd N_balance = MatrixXd::Identity(dof, dof);
+            //MatrixXd N_balance = MatrixXd::Identity(dof, dof);
+            MatrixXd N_balance = MatrixXd::Zero(dof, dof);
+            N_balance(0, 0) = 1.0;
+            N_balance(1, 1) = 1.0;
+            N_balance(2, 2) = 1.0;
             //N_balance(2, 2) = 0.0;
             //N_balance(11, 11) = 0.0;
             //N_balance(12, 12) = 0.0;
@@ -205,6 +209,11 @@ int main() {
             VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
             VectorXd q_init_desired = q_specified;
             joint_task->_desired_position = q_init_desired;
+            for(int i = 3; i <= 16; i++)
+            {
+                joint_task->_desired_position(i) = robot->_q(i);
+                joint_task->_desired_velocity(i) = robot->_dq(i);
+            }
             joint_task->computeTorques(joint_task_torques);
 
             VectorXd m_feet = VectorXd::Zero(dof);
@@ -228,11 +237,11 @@ int main() {
 
             if (k_iter_ctrl % 100 == 0)
             {
-                //cout << "sdv:\n" << joint_task->_step_desired_velocity << endl;
-                //cout << "vsat:\n" << joint_task->_saturation_velocity << endl;
-                //cout << "M:\n" << joint_task->_M_modified << endl;
-                //cout << "tf:\n" << joint_task->_task_force << endl;
-                //cout << "trq:\n" << joint_task_torques << endl;
+                cout << "sdv:\n" << joint_task->_step_desired_velocity << endl;
+                cout << "vsat:\n" << joint_task->_saturation_velocity << endl;
+                cout << "M:\n" << joint_task->_M_modified << endl;
+                cout << "tf:\n" << joint_task->_task_force << endl;
+                cout << "trq:\n" << joint_task_torques << endl;
                 //cout << "dq:\n" << robot->_dq << endl;
                 //cout << "joint torque:\n" << joint_task_torques << endl;
                 //cout << "M:\n" << robot->_M << endl;
