@@ -78,6 +78,7 @@ add_definitions(${SAI2-PRIMITIVES_DEFINITIONS})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${VOLLEY_BINARY_DIR})
 #ADD_EXECUTABLE (controller controller.cpp ${CS225A_COMMON_SOURCE})
 ADD_EXECUTABLE (simviz simviz.cpp ${CS225A_COMMON_SOURCE})
+ADD_EXECUTABLE (controller controller.cpp ${CS225A_COMMON_SOURCE})
 
 # and link the library against the executable
 #TARGET_LINK_LIBRARIES (controller ${CS225A_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
