@@ -15,6 +15,8 @@ KEYS = Dict([
              :hitpos_custom => "cs225a::volleybot::robot1::input::hit_pos",
              :toss_pos => "cs225a::volleybot::ball::toss_pos",
              :toss_vel => "cs225a::volleybot::ball::toss_vel",
+             :ballq => "cs225a::volleybot::ball::sensors::q",
+             :balldq => "cs225a::volleybot::ball::sensors::dq",
             ])
 
 function setup()
@@ -37,7 +39,9 @@ function record(conn)
         cmdtrq = parse_eigen_array(get(conn, KEYS[:cmdtrq]))
         q = parse_eigen_array(get(conn, KEYS[:q]))
         dq = parse_eigen_array(get(conn, KEYS[:dq]))
-        log!(logger,:controller, t_control, (;cmdtrq, q, dq))
+        ballq = parse_eigen_array(get(conn, KEYS[:ballq]))
+        balldq = parse_eigen_array(get(conn, KEYS[:balldq]))
+        log!(logger,:controller, t_control, (;cmdtrq, q, dq, ballq, balldq))
 
         k_sim = parse(Int, get(conn, KEYS[:k_sim]))
         t_sim = k_sim * 0.001

@@ -308,6 +308,8 @@ int main(int argc, char* argv[]) {
 			object->_dq(4) = 0.0; // x spin
 			object->_dq(5) = 0.0; // x spin
 
+            object->updateModel();
+
             cout << "Tossing ball, \nposition:\n" << ball_toss_pos << "\nvel:\n" << ball_toss_vel << endl;
 
 			sim->setJointPositions(obj_name, object->_q);
@@ -374,9 +376,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
 
             VectorXd ball_pos = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
-            sim->setJointPositions(obj_name, ball_pos);
             object->_q = ball_pos;
             object->_dq = Vector3d::Zero();
+            sim->setJointPositions(obj_name, object->_q);
+            sim->setJointVelocities(obj_name, object->_dq);
             object->updateModel();
             
             redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);

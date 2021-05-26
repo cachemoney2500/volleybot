@@ -51,3 +51,20 @@ function plot(dataset, ::Val{:joint}, i)
         layout=(3,1), size=(600, 1200)
     )
 end
+
+function plot(dataset, ::Val{:ball})
+    c = dataset.controller
+    plot(
+         begin
+            plot(c.time, c.ballq[1])
+            plot!(c.time, c.ballq[2])
+            plot!(c.time, c.ballq[3])
+        end,
+        begin
+            plot(c.time, c.balldq[1])
+            plot!(c.time, c.balldq[2])
+            plot!(c.time, c.balldq[3])
+        end,
+        layout=(2,1), size=(600, 800)
+       )
+end

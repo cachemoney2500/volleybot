@@ -29,8 +29,6 @@ const std::string BALL_VEL_KEY = "cs225a::volleybot::ball::sensors::dq";
 const std::string JOINT_TORQUES_COMMANDED_KEY  = "cs225a::volleybot::robot1::actuators::fgc";
 const std::string CUSTOM_JOINT_ANGLES_KEY  = "cs225a::volleybot::robot1::input::q_custom";
 const std::string CUSTOM_HIT_POSITION  = "cs225a::volleybot::robot1::input::hit_pos";
-const std::string BOUNCE_DEMO_CONFIGS  = "cs225a::volleybot::demo::bounce_configs";
-const std::string CUSTOM_HIP_GOAL_KEY  = "cs225a::volleybot::robot1::input::hip_goal";
 
 const std::string CONTROLLER_START_FLAG  = "cs225a::simulation::controller_start_flag";
 const std::string SIMULATION_LOOP_ITERATION = "cs225a::simulation::k_iter";
@@ -39,42 +37,6 @@ const std::string CONTROLLER_LOOP_ITERATION = "cs225a::controller::k_iter";
 bool controller_start_flag = false;
 unsigned long long k_iter_ctrl = 0;
 unsigned long long k_iter_sim = 0;
-
-//const string obj_link_name = "link6";
-
-//Vector3d forwardTracking (double time_forward, double time_air) {
-//    Vector3d ball_launch_pos;
-//    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-//    Vector3d ball_launch_vel;
-//    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
-//    double x_f = ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
-//    double y_f = ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
-//    double z_f = ball_launch_pos(2) + ball_launch_vel(2)*(time_forward + time_air) - (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
-//    return predictedLanding = Vector3d(x_f, y_f, z_f);
-//}
-//
-//Vector3d backwardTracking (double time_forward, double time_air) {
-//    Vector3d ball_launch_pos;
-//    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-//    Vector3d ball_launch_vel;
-//    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
-//    double x_f = -ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
-//    double y_f = -ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
-//    double z_f = ball_launch_pos(2) + -ball_launch_vel(2)*(time_forward + time_air) + (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
-//    return predictedLanding = Vector3d(x_f, y_f, z_f);
-//}
-//
-//Matrix3d compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init){
-//  double tf = -2*vel_incident(2)/9.81;
-//  Vector3d a;
-//  a << 0,0,-9.81
-//  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
-//  Vector3d z_des = (.5*(vel_incident+vel_des)).normalized();
-//  Matrix3d R_des = R_init;
-//  R_des.col(1) = R_des.col(0).cross(z_des);
-//  R_des.col(2) = z_des;
-//  return R_des;
-//}
 
 int main() {
 
@@ -88,13 +50,17 @@ int main() {
 	signal(SIGINT, &sighandler);
 
 	// load robots
-	auto robot = new Sai2Model::Sai2Model(robot_file, false);
+    Affine3d T_world_robot = Affine3d::Identity();
+    T_world_robot.translation() << 0.0, -5.0, 0.5;
+	auto robot = new Sai2Model::Sai2Model(robot_file, false, T_world_robot);
 	int dof = robot->_dof;
 	robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
 	VectorXd initial_q = robot->_q;
 	robot->updateModel();
 
-	auto ball = new Sai2Model::Sai2Model(obj_file, false);
+    Affine3d T_world_ball = Affine3d::Identity();
+    T_world_ball.translation() << 0.0, 5.0, 3.0;
+	auto ball = new Sai2Model::Sai2Model(obj_file, false, T_world_ball);
 
     VectorXd command_torques(dof);
     auto controller = new VolleybotController(robot, ball);
@@ -120,13 +86,19 @@ int main() {
             // read robot state from redis
             robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
             robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
+            ball->_q = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
+            ball->_dq = redis_client.getEigenMatrixJSON(BALL_VEL_KEY);
 
             // update model
             robot->updateModel();
+            ball->updateModel();
+
+            Vector3d hit_pos = redis_client.getEigenMatrixJSON(CUSTOM_HIT_POSITION);
+            VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
 
             // control!
-            VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
             controller->_desired_position = q_specified;
+            controller->_pos_ee_desired_hip = hit_pos;
             controller->_ddq = redis_client.getEigenMatrixJSON(JOINT_ACCEL_KEY);
             controller->execute(k_iter_ctrl, command_torques);
 
