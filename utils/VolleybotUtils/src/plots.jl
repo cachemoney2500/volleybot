@@ -31,3 +31,23 @@ function plot(dataset, ::Val{:all})
          layout=(3,1), size=(600, 1200)
     )
 end
+
+function plot(dataset, ::Val{:heading})
+    c = dataset.controller
+    plot(
+        plot(c.time, c.q[4]*180/π),
+        plot(c.time, c.dq[4]*180/π),
+        plot(c.time, c.cmdtrq[4]),
+        layout=(3,1), size=(600, 1200)
+    )
+end
+
+function plot(dataset, ::Val{:joint}, i)
+    c = dataset.controller
+    plot(
+        plot(c.time, c.q[i]*180/π),
+        plot(c.time, c.dq[i]*180/π),
+        plot(c.time, c.cmdtrq[i]),
+        layout=(3,1), size=(600, 1200)
+    )
+end

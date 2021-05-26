@@ -12,6 +12,7 @@ KEYS = Dict([
              :q => "cs225a::volleybot::robot1::sensors::q",
              :dq => "cs225a::volleybot::robot1::sensors::dq",
              :q_custom => "cs225a::volleybot::robot1::input::q_custom",
+             :hitpos_custom => "cs225a::volleybot::robot1::input::hit_pos",
              :toss_pos => "cs225a::volleybot::ball::toss_pos",
              :toss_vel => "cs225a::volleybot::ball::toss_vel",
             ])

@@ -1,9 +1,11 @@
 #include "VolleybotController.h"
 
-VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot)
+VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball)
 {
 	_robot = robot;
 	int dof = _robot->_dof;
+
+	_ball = ball;
 
 	/*
      * Initialize the base control joint task
@@ -11,10 +13,26 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot)
 	_base_task = new Sai2Primitives::JointTask(_robot);
 	_base_task->_use_velocity_saturation_flag = true;
 	_base_task->_use_interpolation_flag = false;
-	_base_task->_kp = 250.0;
-	_base_task->_kv = 15.0;
 	_base_task->_saturation_velocity(0) = 4.0;
 	_base_task->_saturation_velocity(1) = 4.0;
+	_base_task->_saturation_velocity(3) = 2.0;
+
+    VectorXd kp_base(dof);
+    kp_base << 250.0 * _robot->_M(0,0),
+               250.0 * _robot->_M(1,1),
+               250.0 * _robot->_M(2,2),
+               250.0 * _robot->_M(3,3),
+               VectorXd::Ones(dof - 4);
+
+    VectorXd kv_base(dof);
+    kv_base << 15.0 * _robot->_M(0,0),
+               15.0 * _robot->_M(1,1),
+               15.0 * _robot->_M(2,2),
+               15.0 * _robot->_M(3,3),
+               VectorXd::Ones(dof - 4);
+
+    _base_task->setNonIsotropicGains(kp_base, kv_base, VectorXd::Zero(dof));
+    _base_task->setDynamicDecouplingNone();
 
 	/*
      * Leg control gains
@@ -40,19 +58,44 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot)
 	/*
      * Base nullspace
      */
-    _N_base_no_legs = MatrixXd::Identity(dof, dof);
-    _N_base_no_legs(11, 11) = 0.0;
-    _N_base_no_legs(12, 12) = 0.0;
-    _N_base_no_legs(13, 13) = 0.0;
-    _N_base_no_legs(14, 14) = 0.0;
-    _N_base_no_legs(15, 15) = 0.0;
-    _N_base_no_legs(16, 16) = 0.0;
+    _N_base_trans = MatrixXd::Zero(dof, dof);
+    _N_base_trans(0,0) = 1.0;
+    _N_base_trans(1,1) = 1.0;
+    _N_base_trans(2,2) = 1.0;
+    _N_base_trans(3,3) = 1.0;
+
+	/*
+     * Arm nullspace
+     */
+    _N_posture = MatrixXd::Identity(dof, dof);
+    _N_posture(0,0) = 0.0;
+    _N_posture(1,1) = 0.0;
+    _N_posture(2,2) = 0.0;
+    _N_posture(3,3) = 0.0;
+    _N_posture(11,11) = 0.0;
+    _N_posture(12,12) = 0.0;
+    _N_posture(13,13) = 0.0;
+    _N_posture(14,14) = 0.0;
+    _N_posture(15,15) = 0.0;
+    _N_posture(16,16) = 0.0;
+
+	/*
+     * Initialize posture regularization
+     */
+	_posture_regularization_task = new Sai2Primitives::JointTask(_robot);
+	_posture_regularization_task->_use_velocity_saturation_flag = true;
+	_posture_regularization_task->_use_interpolation_flag = false;
+	_posture_regularization_task->_kp = 250.0;
+	_posture_regularization_task->_kv = 15.0;
+    _posture_regularization_task->setDynamicDecouplingNone();
 
     _dz_hip_foot = 0.3;
 
+    _ddq = VectorXd::Zero(dof);
+
 }
 
-void VolleybotController::computeTorques(Eigen::VectorXd& output_torques)
+void VolleybotController::execute(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques)
 {
 	int dof = _robot->_dof;
 
@@ -65,7 +108,7 @@ void VolleybotController::computeTorques(Eigen::VectorXd& output_torques)
     /*
      * Base control
      */
-    _base_task->updateTaskModel(_N_base_no_legs);
+    _base_task->updateTaskModel(_N_base_trans);
     VectorXd base_torques(dof);
     _base_task->_desired_position = _desired_position;
     _base_task->computeTorques(base_torques);
@@ -73,12 +116,43 @@ void VolleybotController::computeTorques(Eigen::VectorXd& output_torques)
     /*
      * Leg control
      */
-    Vector3d base_accel = Vector3d(base_torques(0)/_robot->_M(0,0), 
+    Vector3d base_accel_old = Vector3d(base_torques(0)/_robot->_M(0,0), 
             base_torques(1)/_robot->_M(0,0), 0.0);
+    Vector3d base_accel = _ddq.head(3);
     VectorXd leg_torques(dof);
     legControl(leg_torques, base_accel);
 
-    output_torques =  g + base_torques + leg_torques;
+    /*
+     * Arm control
+     */
+    _posture_regularization_task->updateTaskModel(_N_posture);
+    VectorXd posture_torques(dof);
+    _posture_regularization_task->_desired_position = _desired_position;
+    _posture_regularization_task->computeTorques(posture_torques);
+
+    VectorXd g_arm_reject_accel(dof);
+    _robot->gravityVector(g_arm_reject_accel, -base_accel);
+    g_arm_reject_accel.head(4) = VectorXd::Zero(4);
+    g_arm_reject_accel.tail(6) = VectorXd::Zero(6);
+
+    posture_torques = posture_torques + g_arm_reject_accel;
+
+
+    if (k_iter_ctrl % 100 == 0)
+    {
+        std::cout << "base accel:\n" << base_accel << std::endl;
+        std::cout << "base accel old:\n" << base_accel_old << std::endl;
+        std::cout << "g reject arm:\n" << g_arm_reject_accel << std::endl;
+        //std::cout << "kp:\n" << _base_task->_kp_mat << std::endl;
+        //std::cout << "kv:\n" << _base_task->_kv_mat << std::endl;
+        //std::cout << "ki:\n" << _base_task->_ki_mat << std::endl;
+        //std::cout << "M:\n" << _base_task->_M_modified << std::endl;
+        //std::cout << "M1:\n" << _base_task->_M_modified*_N_base_trans << std::endl;
+        //std::cout << "M2:\n" << _N_base_trans*_base_task->_M_modified*_N_base_trans << std::endl;
+        //std::cout << "tf:\n" << _base_task->_task_force << std::endl;
+    }
+
+    output_torques =  g + base_torques + posture_torques + leg_torques;
 }
 
 void VolleybotController::legControl(Eigen::VectorXd& leg_torques, Vector3d base_accel)

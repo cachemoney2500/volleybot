@@ -36,6 +36,7 @@ RedisClient redis_client;
 // - write:
 const std::string JOINT_ANGLES_KEY  = "cs225a::volleybot::robot1::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "cs225a::volleybot::robot1::sensors::dq";
+const std::string JOINT_ACCEL_KEY = "cs225a::volleybot::robot1::sensors::ddq";
 const std::string BALL_POS_KEY  = "cs225a::volleybot::ball::sensors::q";
 const std::string BALL_VEL_KEY = "cs225a::volleybot::ball::sensors::dq";
 
@@ -171,6 +172,7 @@ int main(int argc, char* argv[]) {
 	// init redis client values
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.setEigenMatrixJSON(JOINT_ACCEL_KEY, VectorXd::Zero(robot->_dof));
 	redis_client.setEigenMatrixJSON(BALL_POS_KEY, object->_q);
 	redis_client.setEigenMatrixJSON(BALL_VEL_KEY, object->_dq);
 
@@ -353,7 +355,7 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
 	double kvj = 10;  // velocity damping for ui force drag
 
 	// setup redis client data container for pipeset (batch write)
-	std::vector<std::pair<std::string, std::string>> redis_data(5);  // set with the number of keys to write
+	std::vector<std::pair<std::string, std::string>> redis_data(6);  // set with the number of keys to write
 
 	fSimulationRunning = true;
 	while (fSimulationRunning) {
@@ -402,6 +404,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
                 sim->getJointVelocities(robot_name, robot->_dq);
                 robot->updateModel();
 
+                // get accel
+                VectorXd ddq(dof);
+                sim->getJointAccelerations(robot_name, ddq);
+
                 sim->getJointPositions(obj_name, object->_q);
                 sim->getJointVelocities(obj_name, object->_dq);
                 object->updateModel();
@@ -412,9 +418,10 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
                 // shown explicitly here, but you can define a helper function to publish data
                 redis_data.at(0) = std::pair<string, string>(JOINT_ANGLES_KEY, redis_client.encodeEigenMatrixJSON(robot->_q));
                 redis_data.at(1) = std::pair<string, string>(JOINT_VELOCITIES_KEY, redis_client.encodeEigenMatrixJSON(robot->_dq));
-                redis_data.at(2) = std::pair<string, string>(BALL_POS_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
-                redis_data.at(3) = std::pair<string, string>(BALL_VEL_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
-                redis_data.at(4) = std::pair<string, string>(SIMULATION_LOOP_ITERATION, std::to_string(k_iter_sim)); // tell controller sim loop is done
+                redis_data.at(2) = std::pair<string, string>(JOINT_ACCEL_KEY, redis_client.encodeEigenMatrixJSON(ddq));
+                redis_data.at(3) = std::pair<string, string>(BALL_POS_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
+                redis_data.at(4) = std::pair<string, string>(BALL_VEL_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
+                redis_data.at(5) = std::pair<string, string>(SIMULATION_LOOP_ITERATION, std::to_string(k_iter_sim)); // tell controller sim loop is done
 
                 redis_client.pipeset(redis_data);
 

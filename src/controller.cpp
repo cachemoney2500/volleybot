@@ -19,13 +19,16 @@ using namespace std;
 using namespace Eigen;
 
 const string robot_file = "./resources/legged_panda.urdf";
+const string obj_file = "./resources/volleyBall.urdf";
 
 const std::string JOINT_ANGLES_KEY  = "cs225a::volleybot::robot1::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "cs225a::volleybot::robot1::sensors::dq";
+const std::string JOINT_ACCEL_KEY = "cs225a::volleybot::robot1::sensors::ddq";
 const std::string BALL_POS_KEY  = "cs225a::volleybot::ball::sensors::q";
 const std::string BALL_VEL_KEY = "cs225a::volleybot::ball::sensors::dq";
 const std::string JOINT_TORQUES_COMMANDED_KEY  = "cs225a::volleybot::robot1::actuators::fgc";
 const std::string CUSTOM_JOINT_ANGLES_KEY  = "cs225a::volleybot::robot1::input::q_custom";
+const std::string CUSTOM_HIT_POSITION  = "cs225a::volleybot::robot1::input::hit_pos";
 const std::string BOUNCE_DEMO_CONFIGS  = "cs225a::volleybot::demo::bounce_configs";
 const std::string CUSTOM_HIP_GOAL_KEY  = "cs225a::volleybot::robot1::input::hip_goal";
 
@@ -91,8 +94,10 @@ int main() {
 	VectorXd initial_q = robot->_q;
 	robot->updateModel();
 
+	auto ball = new Sai2Model::Sai2Model(obj_file, false);
+
     VectorXd command_torques(dof);
-    auto controller = new VolleybotController(robot);
+    auto controller = new VolleybotController(robot, ball);
 
 	// create a timer
 	LoopTimer timer;
@@ -122,7 +127,8 @@ int main() {
             // control!
             VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
             controller->_desired_position = q_specified;
-            controller->computeTorques(command_torques);
+            controller->_ddq = redis_client.getEigenMatrixJSON(JOINT_ACCEL_KEY);
+            controller->execute(k_iter_ctrl, command_torques);
 
             // send to redis
             redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);

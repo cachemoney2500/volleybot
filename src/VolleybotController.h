@@ -12,13 +12,15 @@ class VolleybotController
 
 public:
 
-	VolleybotController(Sai2Model::Sai2Model* robot);
+	VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball);
 
-	void computeTorques(Eigen::VectorXd& output_torques);
+	void execute(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
 
 	Sai2Model::Sai2Model* _robot;
+	Sai2Model::Sai2Model* _ball;
 
     Sai2Primitives::JointTask* _base_task;
+    Sai2Primitives::JointTask* _posture_regularization_task;
 
     MatrixXd _Jv_foot_left;
     MatrixXd _Jv_foot_right;
@@ -29,16 +31,18 @@ public:
     double _Komega_feet;
 
     MatrixXd _N_no_external;
-    MatrixXd _N_base_no_legs;
+    MatrixXd _N_base_trans;
+    MatrixXd _N_posture;
 
     VectorXd _desired_position;
+
+    VectorXd _ddq;
 
     double _dz_hip_foot;
 
 private:
 
 	void legControl(Eigen::VectorXd& leg_torques, Vector3d base_accel);
-
 
 };
 

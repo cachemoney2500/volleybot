@@ -475,7 +475,7 @@
       <child link="link1"/>
       <axis xyz="0 0 1"/>
       <calibration falling="-80.0" />
-      <limit effort="100" lower="-2.8973" upper="2.8973" velocity="100.0"/>
+      <limit effort="1000" lower="-2.8973" upper="2.8973" velocity="100.0"/>
   </joint>
 
   <joint name="joint2" type="revolute">
@@ -485,7 +485,7 @@
       <child link="link2"/>
       <axis xyz="0 0 1"/>
       <calibration falling="-45.0" />
-      <limit effort="87" lower="-1.7628" upper="1.7628" velocity="2.1750"/>
+      <limit effort="1000" lower="-1.7628" upper="1.7628" velocity="2.1750"/>
   </joint>
 
   <joint name="joint3" type="revolute">
@@ -494,7 +494,7 @@
       <parent link="link2"/>
       <child link="link3"/>
       <axis xyz="0 0 1"/>
-      <limit effort="87" lower="-2.8973" upper="2.8973" velocity="2.1750"/>
+      <limit effort="1000" lower="-2.8973" upper="2.8973" velocity="2.1750"/>
   </joint>
 
   <joint name="joint4" type="revolute">
@@ -504,7 +504,7 @@
       <child link="link4"/>
       <axis xyz="0 0 1"/>
       <calibration falling="-125.0" />
-      <limit effort="87" lower="-3.0718" upper="-0.0698" velocity="2.1750"/>
+      <limit effort="1000" lower="-3.0718" upper="-0.0698" velocity="2.1750"/>
   </joint>
 
   <joint name="joint5" type="revolute">
