@@ -14,15 +14,6 @@
 
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
-bool fSimulationLoopDone = false;
-bool fControllerLoopDone = true; // initialize as true for first loop
-
-// function for converting string to bool
-bool string_to_bool(const std::string& x);
-
-// function for converting bool to string
-inline const char * const bool_to_string(bool b);
-
 
 using namespace std;
 using namespace Eigen;
@@ -723,18 +714,4 @@ void mouseClick(GLFWwindow* window, int button, int action, int mods) {
 		default:
 			break;
 	}
-}
-
-//------------------------------------------------------------------------------
-
-bool string_to_bool(const std::string& x) {
-  assert(x == "false" || x == "true");
-  return x == "true";
-}
-
-//------------------------------------------------------------------------------
-
-inline const char * const bool_to_string(bool b)
-{
-  return b ? "true" : "false";
 }

@@ -15,12 +15,6 @@ bool runloop = true;
 void sighandler(int sig)
 { runloop = false; }
 
-// function for converting string to bool
-bool string_to_bool(const std::string& x);
-
-// function for converting bool to string
-inline const char * const bool_to_string(bool b);
-
 using namespace std;
 using namespace Eigen;
 
@@ -42,8 +36,6 @@ const std::string CONTROLLER_LOOP_ITERATION = "cs225a::controller::k_iter";
 bool controller_start_flag = false;
 unsigned long long k_iter_ctrl = 0;
 unsigned long long k_iter_sim = 0;
-
-const bool inertia_regularization = true;
 
 int main() {
 
@@ -70,6 +62,7 @@ int main() {
 	// joint task
 	auto joint_task = new Sai2Primitives::JointTask(robot);
 	joint_task->_use_velocity_saturation_flag = true;
+	joint_task->_use_interpolation_flag = false;
 
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
 	joint_task->_kp = 250.0;
@@ -154,17 +147,53 @@ int main() {
             G_control_axes(1,1) = 0.0;
 
             Matrix3d Kp_leg = Matrix3d::Zero();
-            Kp_leg(0,0) = 20.0;
-            Kp_leg(1,1) = 20.0;
-            Kp_leg(2,2) = 20.0;
+            Kp_leg(0,0) = 500.0;
+            Kp_leg(1,1) = 250.0;
+            Kp_leg(2,2) = 250.0;
 
             Matrix3d Kv_leg = Matrix3d::Zero();
-            Kv_leg(0,0) = 5.0;
-            Kv_leg(1,1) = 5.0;
-            Kv_leg(2,2) = 5.0;
+            Kv_leg(0,0) = 15.0;
+            Kv_leg(1,1) = 15.0;
+            Kv_leg(2,2) = 15.0;
 
             Vector3d dr_des = Vector3d(0.0, 0.0, dz_hip_foot);
             Vector3d dv_des = Vector3d::Zero();
+
+            //cout << "Jv:\n" << Jv_foot_left << endl;
+            //cout << "Jv proj:\n" << Jv_foot_left_proj << endl;
+            //exit(1);
+            //MatrixXd J_balance_full(6, dof);
+            //J_balance_full << Jv_foot_left_proj, Jv_foot_right_proj;
+            MatrixXd N_balance = MatrixXd::Identity(dof, dof);
+            //N_balance(2, 2) = 0.0;
+            N_balance(11, 11) = 0.0;
+            N_balance(12, 12) = 0.0;
+            N_balance(13, 13) = 0.0;
+            N_balance(14, 14) = 0.0;
+            N_balance(15, 15) = 0.0;
+            N_balance(16, 16) = 0.0;
+            //robot->nullspaceMatrix(N_balance, J_balance_full);
+            joint_task->updateTaskModel(N_balance);
+            //cout << "N balance:\n" << N_balance << endl;
+            //exit(1);
+
+            VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
+            VectorXd q_init_desired = q_specified;
+            joint_task->_desired_position = q_init_desired;
+            //for(int i = 3; i <= 16; i++)
+            //{
+            //    joint_task->_desired_position(i) = robot->_q(i);
+            //    joint_task->_desired_velocity(i) = robot->_dq(i);
+            //}
+            joint_task->computeTorques(joint_task_torques);
+
+            double Kff = 0.0;
+            Vector3d f_foot_base_feedforward = R_hip.transpose() * Vector3d(joint_task_torques(0)/robot->_M(0,0), joint_task_torques(1)/robot->_M(0,0), 0.0);
+
+            Vector3d base_accel = Vector3d(joint_task_torques(0)/robot->_M(0,0), joint_task_torques(1)/robot->_M(0,0), 0.0);
+            VectorXd g_legs_reject_accel(dof);
+            robot->gravityVector(g_legs_reject_accel, -base_accel);
+            g_legs_reject_accel.head(11) = VectorXd::Zero(dof - 6);
 
             //Vector3d f_foot_gravity_feedforward = Vector3d(0.0, 0.0, -g(2)*0.05/2.0);
             Vector3d f_foot_gravity_feedforward = Vector3d::Zero();
@@ -174,6 +203,8 @@ int main() {
 
             if (k_iter_ctrl % 100 == 0)
             {
+                //cout << "g reject:\n" << g_legs_reject_accel << endl;
+                //cout << "f ff base:\n" << f_foot_base_feedforward << endl;
                 //cout << "dr l:\n" << dr_foot_left << endl;
                 //cout << "dr r:\n" << dr_foot_right << endl;
                 //cout << "dv l:\n" << dv_foot_left << endl;
@@ -181,40 +212,11 @@ int main() {
             }
 
             VectorXd tau_balance(dof);
-            tau_balance = Jv_foot_left_proj.transpose() * f_foot_left + Jv_foot_right_proj.transpose() * f_foot_right;
+            MatrixXd M_feet = MatrixXd::Identity(dof, dof);
+            M_feet.block(11, 11, 6, 6) = robot->_M.block(11, 11, 6, 6);
+            tau_balance = M_feet * (Jv_foot_left_proj.transpose() * f_foot_left + Jv_foot_right_proj.transpose() * f_foot_right) + g_legs_reject_accel;
             //cout << "tau balance:\n" << tau_balance << endl;
 
-            //cout << "Jv:\n" << Jv_foot_left << endl;
-            //cout << "Jv proj:\n" << Jv_foot_left_proj << endl;
-            //exit(1);
-            //MatrixXd J_balance_full(6, dof);
-            //J_balance_full << Jv_foot_left_proj, Jv_foot_right_proj;
-            //MatrixXd N_balance = MatrixXd::Identity(dof, dof);
-            MatrixXd N_balance = MatrixXd::Zero(dof, dof);
-            N_balance(0, 0) = 1.0;
-            N_balance(1, 1) = 1.0;
-            N_balance(2, 2) = 1.0;
-            //N_balance(2, 2) = 0.0;
-            //N_balance(11, 11) = 0.0;
-            //N_balance(12, 12) = 0.0;
-            //N_balance(13, 13) = 0.0;
-            //N_balance(14, 14) = 0.0;
-            //N_balance(15, 15) = 0.0;
-            //N_balance(16, 16) = 0.0;
-            //robot->nullspaceMatrix(N_balance, J_balance_full);
-            joint_task->updateTaskModel(N_balance);
-            //cout << "N balance:\n" << N_balance << endl;
-            //exit(1);
-
-            VectorXd q_specified = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEY);
-            VectorXd q_init_desired = q_specified;
-            joint_task->_desired_position = q_init_desired;
-            for(int i = 3; i <= 16; i++)
-            {
-                joint_task->_desired_position(i) = robot->_q(i);
-                joint_task->_desired_velocity(i) = robot->_dq(i);
-            }
-            joint_task->computeTorques(joint_task_torques);
 
             VectorXd m_feet = VectorXd::Zero(dof);
 
@@ -237,11 +239,11 @@ int main() {
 
             if (k_iter_ctrl % 100 == 0)
             {
-                cout << "sdv:\n" << joint_task->_step_desired_velocity << endl;
-                cout << "vsat:\n" << joint_task->_saturation_velocity << endl;
-                cout << "M:\n" << joint_task->_M_modified << endl;
-                cout << "tf:\n" << joint_task->_task_force << endl;
-                cout << "trq:\n" << joint_task_torques << endl;
+                //cout << "sdv:\n" << joint_task->_step_desired_velocity << endl;
+                //cout << "vsat:\n" << joint_task->_saturation_velocity << endl;
+                //cout << "M:\n" << joint_task->_M_modified << endl;
+                //cout << "tf:\n" << joint_task->_task_force << endl;
+                //cout << "trq:\n" << joint_task_torques << endl;
                 //cout << "dq:\n" << robot->_dq << endl;
                 //cout << "joint torque:\n" << joint_task_torques << endl;
                 //cout << "M:\n" << robot->_M << endl;
@@ -254,8 +256,8 @@ int main() {
                 //cout << "m fl:" << m_feet(13) << endl;
             }
 
-            //command_torques =  g + tau_balance + joint_task_torques + m_feet;
-            command_torques =  g + joint_task_torques;
+            command_torques =  g + tau_balance + joint_task_torques + m_feet;
+            //command_torques =  g + joint_task_torques;
             //command_torques(0) = 150.0;
             //command_torques =  N_no_external*g + tau_balance;
             //cout << "cmd trq:\n" << command_torques << endl;
@@ -281,18 +283,4 @@ int main() {
     std::cout << "Control Loop updates   : " << k_iter_ctrl << "\n";
 
 	return 0;
-}
-
-//------------------------------------------------------------------------------
-
-bool string_to_bool(const std::string& x) {
-  assert(x == "false" || x == "true");
-  return x == "true";
-}
-
-//------------------------------------------------------------------------------
-
-inline const char * const bool_to_string(bool b)
-{
-  return b ? "true" : "false";
 }
