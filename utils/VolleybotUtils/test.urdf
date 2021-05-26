@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="mmp_panda">
+  <link name="ground_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1E-06" ixy="0.0" ixz="0.0" iyy="1E-06" iyz="0.0" izz="1E-06"/>
+    </inertial>
+  </link>
+  <link name="base_x">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1E-06" ixy="0.0" ixz="0.0" iyy="1E-06" iyz="0.0" izz="1E-06"/>
+    </inertial>
+  </link>
+  <link name="base_y">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1E-06" ixy="0.0" ixz="0.0" iyy="1E-06" iyz="0.0" izz="1E-06"/>
+    </inertial>
+  </link>
+  <joint name="base_prismatic_x" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="ground_link"/>
+    <child link="base_x"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="0" velocity="2.0"/>
+  </joint>
+  <joint name="base_prismatic_y" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_x"/>
+    <child link="base_y"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="0" velocity="2.0"/>
+  </joint>
+  <joint name="base_revolute" type="revolute">
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <parent link="base_z"/>
+    <child link="base_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="87" lower="-2.8973" upper="2.8973" velocity="2.1750"/>
+  </joint>
+</robot>
