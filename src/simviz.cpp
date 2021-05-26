@@ -42,6 +42,8 @@ const std::string BALL_VEL_KEY = "cs225a::volleybot::ball::sensors::dq";
 // - read:
 const std::string JOINT_TORQUES_COMMANDED_KEY  = "cs225a::volleybot::robot1::actuators::fgc";
 const std::string CUSTOM_JOINT_ANGLES_KEY  = "cs225a::volleybot::robot1::input::q_custom";
+const std::string BALL_TOSS_POS_KEY  = "cs225a::volleybot::ball::toss_pos";
+const std::string BALL_TOSS_VEL_KEY = "cs225a::volleybot::ball::toss_vel";
 
 const std::string CONTROLLER_START_FLAG  = "cs225a::simulation::controller_start_flag";
 const std::string SIMULATION_LOOP_ITERATION = "cs225a::simulation::k_iter";
@@ -72,6 +74,9 @@ bool fTransZn = false;
 bool fRotPanTilt = false;
 bool fRobotLinkSelect = false;
 bool fToss = false;
+
+Vector3d ball_toss_pos = Vector3d::Zero();
+Vector3d ball_toss_vel = Vector3d::Zero();
 
 bool controller_start_flag = false;
 unsigned long long k_iter_ctrl = 0;
@@ -291,15 +296,17 @@ int main(int argc, char* argv[]) {
 		}
 		if(fToss) // retoss a ball
 		{
-			object->_q(0) = 0.0;
-			object->_q(1) = .0;
-			object->_q(2) = 0.0;
-			object->_dq(0) = +0.05;//-.5+0.01*(rand()%150);
-			object->_dq(1) = -7.9;//-9.0+0.02*(rand()%100); // 7.9 is a good value
-			object->_dq(2) = 2.0;
+			object->_q(0) = ball_toss_pos(0);
+			object->_q(1) = ball_toss_pos(1);
+			object->_q(2) = ball_toss_pos(2);
+			object->_dq(0) = ball_toss_vel(0);//-.5+0.01*(rand()%150);
+			object->_dq(1) = ball_toss_vel(1);//-9.0+0.02*(rand()%100); // 7.9 is a good value
+			object->_dq(2) = ball_toss_vel(2);
 			object->_dq(3) = 0.0; // x spin
 			object->_dq(4) = 0.0; // x spin
 			object->_dq(5) = 0.0; // x spin
+
+            cout << "Tossing ball, \nposition:\n" << ball_toss_pos << "\nvel:\n" << ball_toss_vel << endl;
 
 			sim->setJointPositions(obj_name, object->_q);
 			sim->setJointVelocities(obj_name, object->_dq);
@@ -361,6 +368,9 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             robot->_dq = VectorXd::Zero(dof);
             robot->updateModel();
 
+            ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
+            ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
+
             VectorXd ball_pos = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
             sim->setJointPositions(obj_name, ball_pos);
             object->_q = ball_pos;
@@ -371,11 +381,15 @@ void simulation(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* object, Simul
             redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
             redis_client.setEigenMatrixJSON(BALL_POS_KEY, object->_q);
             redis_client.setEigenMatrixJSON(BALL_VEL_KEY, object->_dq);
+
         }
         else 
         {
             while(k_iter_sim < k_iter_ctrl) {
                 command_torques = redis_client.getEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY);
+                ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
+                ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
+
 
                 // z axis prismatic joint is virtual, don't allow commanded actuation
                 VectorXd sim_torques = command_torques;

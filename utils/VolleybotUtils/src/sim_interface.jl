@@ -11,6 +11,9 @@ KEYS = Dict([
              :cmdtrq => "cs225a::volleybot::robot1::actuators::fgc",
              :q => "cs225a::volleybot::robot1::sensors::q",
              :dq => "cs225a::volleybot::robot1::sensors::dq",
+             :q_custom => "cs225a::volleybot::robot1::input::q_custom",
+             :toss_pos => "cs225a::volleybot::ball::toss_pos",
+             :toss_vel => "cs225a::volleybot::ball::toss_vel",
             ])
 
 function setup()
@@ -56,4 +59,12 @@ function parse_eigen_array(arr_str)
     else
         return rows[1]'
     end
+end
+
+function setarr(sym, conn, arr)
+    set(conn, KEYS[sym], string(arr))
+end
+
+function getarr(sym, conn)
+    parse_eigen_array(get(conn, KEYS[sym]))
 end
