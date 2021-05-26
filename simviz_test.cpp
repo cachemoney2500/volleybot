@@ -101,7 +101,7 @@ int main() {
 	T_world_robot1.linear() = R_world_robot1;
 
 	auto robot1 = new Sai2Model::Sai2Model(robot_file, false, T_world_robot1);
-	robot1->updateKinematics();
+	robot1->updateModel();
 
 	// load robot2
 	Vector3d robot2_offset = Vector3d(0.0, 4.0, 0.5);
@@ -115,7 +115,7 @@ int main() {
 	T_world_robot2.linear() = R_world_robot2;
 
 	auto robot2 = new Sai2Model::Sai2Model(robot_file, false, T_world_robot2);
-	robot2->updateKinematics();
+	robot2->updateModel();
 
 	// load objects
 	Vector3d object_offset = Vector3d(0.0, 5.0, 3.0);
@@ -129,7 +129,7 @@ int main() {
 	T_world_object.linear() = R_world_object;
 
 	auto object = new Sai2Model::Sai2Model(obj_file, false);
-	object->updateKinematics();
+	object->updateModel();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
@@ -346,8 +346,11 @@ void simulation(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000); 
-	double last_time = timer.elapsedTime(); //secs
+	double time_slowdown_factor = 1.0;
 	bool fTimerDidSleep = true;
+	double start_time = timer.elapsedTime() / time_slowdown_factor;
+	double last_time = start_time; //secs
+	
 
 	// init variables
 	VectorXd g1(dof1);
@@ -381,19 +384,20 @@ void simulation(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2
 			sim->setJointTorques(robot1_name, command_torques1 + ui_force_command_torques + g1);
 		else
 			sim->setJointTorques(robot1_name, command_torques1 + g1);
+			sim->setJointTorques(robot2_name, command_torques2 + g2);
 
 		// integrate forward
 		double curr_time = timer.elapsedTime();
 		double loop_dt = curr_time - last_time; 
-		sim->integrate(loop_dt);
+		sim->integrate(0.001);
 
 		// read joint positions, velocities, update model
-		sim->getJointPositions(robot1_name, robot1->_q);
-		sim->getJointVelocities(robot1_name, robot1->_dq);
+		sim->setJointPositions(robot1_name, robot1->_q);
+		sim->setJointVelocities(robot1_name, robot1->_dq);
 		robot1->updateModel();
 
-		sim->getJointPositions(robot2_name, robot2->_q);
-		sim->getJointVelocities(robot2_name, robot2->_dq);
+		sim->setJointPositions(robot2_name, robot2->_q);
+		sim->setJointVelocities(robot2_name, robot2->_dq);
 		robot2->updateModel();
 
 		// read object positions, velocities, update model
