@@ -76,7 +76,7 @@ add_definitions(${SAI2-PRIMITIVES_DEFINITIONS})
 
 # create an executable
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${VOLLEY_BINARY_DIR})
-ADD_EXECUTABLE (simviz simviz_volley.cpp ${CS225A_COMMON_SOURCE})
+ADD_EXECUTABLE (simviz simviz.cpp ${CS225A_COMMON_SOURCE})
 ADD_LIBRARY (volleybot_controller VolleybotController.cpp ${CS225A_COMMON_SOURCE})
 ADD_EXECUTABLE (controller controller.cpp ${CS225A_COMMON_SOURCE})
 
