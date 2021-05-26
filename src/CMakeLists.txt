@@ -1,0 +1,10 @@
+ADD_EXECUTABLE (simviz simviz.cpp ${CS225A_COMMON_SOURCE})
+ADD_LIBRARY (volleybot_controller VolleybotController.cpp ${CS225A_COMMON_SOURCE})
+ADD_EXECUTABLE (controller controller.cpp ${CS225A_COMMON_SOURCE})
+
+# and link the library against the executable
+#TARGET_LINK_LIBRARIES (controller ${CS225A_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
+TARGET_LINK_LIBRARIES (simviz ${CS225A_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
+TARGET_LINK_LIBRARIES (controller volleybot_controller ${CS225A_COMMON_LIBRARIES} ${SAI2-PRIMITIVES_LIBRARIES})
+
+

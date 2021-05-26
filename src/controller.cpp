@@ -37,39 +37,41 @@ bool controller_start_flag = false;
 unsigned long long k_iter_ctrl = 0;
 unsigned long long k_iter_sim = 0;
 
-Vector3d forwardTracking (double time_forward, double time_air) {
-    Vector3d ball_launch_pos;
-    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-    Vector3d ball_launch_vel;
-    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
-    double x_f = ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
-    double y_f = ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
-    double z_f = ball_launch_pos(2) + ball_launch_vel(2)*(time_forward + time_air) - (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
-    return predictedLanding = Vector3d(x_f, y_f, z_f);
-}
+//const string obj_link_name = "link6";
 
-Vector3d backwardTracking (double time_forward, double time_air) {
-    Vector3d ball_launch_pos;
-    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-    Vector3d ball_launch_vel;
-    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
-    double x_f = -ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
-    double y_f = -ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
-    double z_f = ball_launch_pos(2) + -ball_launch_vel(2)*(time_forward + time_air) + (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
-    return predictedLanding = Vector3d(x_f, y_f, z_f);
-}
-
-Matrix3d compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init){
-  double tf = -2*vel_incident(2)/9.81;
-  Vector3d a;
-  a << 0,0,-9.81
-  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
-  Vector3d z_des = (.5*(vel_incident+vel_des)).normalized();
-  Matrix3d R_des = R_init;
-  R_des.col(1) = R_des.col(0).cross(z_des);
-  R_des.col(2) = z_des;
-  return R_des;
-}
+//Vector3d forwardTracking (double time_forward, double time_air) {
+//    Vector3d ball_launch_pos;
+//    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+//    Vector3d ball_launch_vel;
+//    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
+//    double x_f = ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
+//    double y_f = ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
+//    double z_f = ball_launch_pos(2) + ball_launch_vel(2)*(time_forward + time_air) - (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
+//    return predictedLanding = Vector3d(x_f, y_f, z_f);
+//}
+//
+//Vector3d backwardTracking (double time_forward, double time_air) {
+//    Vector3d ball_launch_pos;
+//    object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+//    Vector3d ball_launch_vel;
+//    object->linearVelocityInWorld(ball_vel, obj_link_name, Vector3d::Zero());
+//    double x_f = -ball_launch_vel(0)*(time_forward + time_air) + ball_launch_pos(0);
+//    double y_f = -ball_launch_vel(1)*(time_forward + time_air) + ball_launch_pos(1);
+//    double z_f = ball_launch_pos(2) + -ball_launch_vel(2)*(time_forward + time_air) + (9.81/2.0)*(time_forward + time_air)*(time_forward + time_air);
+//    return predictedLanding = Vector3d(x_f, y_f, z_f);
+//}
+//
+//Matrix3d compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init){
+//  double tf = -2*vel_incident(2)/9.81;
+//  Vector3d a;
+//  a << 0,0,-9.81
+//  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
+//  Vector3d z_des = (.5*(vel_incident+vel_des)).normalized();
+//  Matrix3d R_des = R_init;
+//  R_des.col(1) = R_des.col(0).cross(z_des);
+//  R_des.col(2) = z_des;
+//  return R_des;
+//}
 
 int main() {
 
