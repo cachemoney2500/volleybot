@@ -5,48 +5,78 @@
 #include <dynamics3d.h>
 #include "redis/RedisClient.h"
 #include "timer/LoopTimer.h"
-
 #include <GLFW/glfw3.h> //must be loaded after loading opengl/glew
-
 #include "uiforce/UIForceWidget.h"
 
 #include <iostream>
 #include <string>
+#include <random>
 
 #include <signal.h>
+
 bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
 using namespace std;
 using namespace Eigen;
 
-const string world_file = "./resources/world_test.urdf";
-const string robot_file = "./resources/mmp_panda.urdf";
+// specify urdf and robots
+const string world_file = "./resources/world.urdf";
+
+const vector<string> robot_files = {
+    "./resources/legged_panda.urdf",
+    "./resources/legged_panda.urdf"   
+};
+const vector<string> robot_names = {
+    "mmp_panda1",
+    "mmp_panda2"
+};
+
 const string obj_file = "./resources/volleyBall.urdf";
-const string robot1_name = "mmp_panda1";
-const string robot2_name = "mmp_panda2";
 const string obj_name = "ball";
 const string camera_name = "camera_fixed";
 const string ee_link_name = "link7";
 const string obj_link_name = "link6";
 
-// redis keys:
-// - write:
-const std::string JOINT_ANGLES1_KEY = "sai2::cs225a::project1::sensors::q";
-const std::string JOINT_VELOCITIES1_KEY = "sai2::cs225a::project1::sensors::dq";
-const std::string JOINT_ANGLES2_KEY = "sai2::cs225a::project2::sensors::q";
-const std::string JOINT_VELOCITIES2_KEY = "sai2::cs225a::project2::sensors::dq";
-const std::string OBJ_POSITION_KEY  = "cs225a::robot::ball::sensors::q";
-const std::string OBJ_VELOCITIES_KEY = "cs225a::robot::ball::sensors::dq";
-const std::string OBJ_PREDICT_KEY = "cs225a::robot::ball::sensors::predict";
-// - read
-const std::string JOINT_TORQUES1_COMMANDED_KEY = "sai2::cs225a::project1::actuators::fgc";
-const std::string JOINT_TORQUES2_COMMANDED_KEY = "sai2::cs225a::project2::actuators::fgc";
+const int n_robots = robot_names.size();
 
 RedisClient redis_client;
 
-// simulation function protot
-void simulation(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget);
+// redis keys:
+// - write:
+const vector<string> JOINT_ANGLES_KEYS = {
+    "cs225a::volleybot::robot1::sensors::q",
+    "cs225a::volleybot::robot2::sensors::q"
+};
+const vector<string> JOINT_VELOCITIES_KEYS = {
+    "cs225a::volleybot::robot1::sensors::dq",
+    "cs225a::volleybot::robot2::sensors::dq"
+};
+const vector<string> JOINT_ACCEL_KEYS = {
+    "cs225a::volleybot::robot1::sensors::ddq",
+    "cs225a::volleybot::robot2::sensors::ddq"
+};
+const std::string BALL_POS_KEY  = "cs225a::volleybot::ball::sensors::q";
+const std::string BALL_VEL_KEY = "cs225a::volleybot::ball::sensors::dq";
+
+// - read:
+const vector<string> JOINT_TORQUES_COMMANDED_KEYS = {
+    "cs225a::volleybot::robot1::actuators::fgc",
+    "cs225a::volleybot::robot2::actuators::fgc"
+};
+const vector<string> CUSTOM_JOINT_ANGLES_KEYS = {
+    "cs225a::volleybot::robot1::input::q_custom",
+    "cs225a::volleybot::robot2::input::q_custom"
+};
+const std::string BALL_TOSS_POS_KEY  = "cs225a::volleybot::ball::toss_pos";
+const std::string BALL_TOSS_VEL_KEY = "cs225a::volleybot::ball::toss_vel";
+
+const std::string CONTROLLER_START_FLAG  = "cs225a::simulation::controller_start_flag";
+const std::string SIMULATION_LOOP_ITERATION = "cs225a::simulation::k_iter";
+const std::string CONTROLLER_LOOP_ITERATION = "cs225a::controller::k_iter";
+
+// simulation thread
+void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget);
 
 // callback to print glfw errors
 void glfwError(int error, const char* description);
@@ -71,462 +101,521 @@ bool fRotPanTilt = false;
 bool fRobotLinkSelect = false;
 bool fToss = false;
 
-int main() {
-	cout << "Loading URDF world model file: " << world_file << endl;
+Vector3d ball_toss_pos = Vector3d::Zero();
+Vector3d ball_toss_vel = Vector3d::Zero();
 
-	// start redis client
-	redis_client = RedisClient();
-	redis_client.connect();
+bool controller_start_flag = false;
+unsigned long long k_iter_ctrl = 0;
+unsigned long long k_iter_sim = 0;
 
-	// set up signal handler
-	signal(SIGABRT, &sighandler);
-	signal(SIGTERM, &sighandler);
-	signal(SIGINT, &sighandler);
+int main(int argc, char* argv[]) {
+    cout << "Loading URDF world model file: " << world_file << endl;
 
-	// load graphics scene
-	auto graphics = new Sai2Graphics::Sai2Graphics(world_file, true);
-	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
-	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
-    graphics->getCamera(camera_name)->setClippingPlanes(2,20);
+    // start redis client
+    redis_client = RedisClient();
+    redis_client.connect();
 
-	// load robot1
-	Vector3d robot1_offset = Vector3d(0.0, -5.0, 0.5);
-	Matrix3d R_world_robot1;
-	R_world_robot1 = AngleAxisd(0.0, Vector3d::UnitX())
-						* AngleAxisd(0.0, Vector3d::UnitY())
-						* AngleAxisd(0.0, Vector3d::UnitZ());
+    // set up signal handler
+    signal(SIGABRT, &sighandler);
+    signal(SIGTERM, &sighandler);
+    signal(SIGINT, &sighandler);
 
-	Affine3d T_world_robot1 = Affine3d::Identity();
-	T_world_robot1.translation() = robot1_offset;
-	T_world_robot1.linear() = R_world_robot1;
+    // load graphics scene
+    auto graphics = new Sai2Graphics::Sai2Graphics(world_file, true);
+    Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
+    graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
+    graphics->getCamera(camera_name)->setClippingPlanes(0.01, 30.0);
 
-	auto robot1 = new Sai2Model::Sai2Model(robot_file, false, T_world_robot1);
-	robot1->updateModel();
+    // load robots
+    vector<Sai2Model::Sai2Model*> robots;
+    vector<Vector3d> robot_offsets = {
+        Vector3d(0.0, -5.0, 0.5),
+        Vector3d(0.0, 4.0, 0.5)
+    };
+    // Vector3d robot1_offset = Vector3d(0.0, -5.0, 0.5);
+    // Vector3d robot2_offset = Vector3d(0.0, 4.0, 0.5);
+    Matrix3d R_world_robot;
+    R_world_robot = AngleAxisd(0.0, Vector3d::UnitZ())
+                        * AngleAxisd(0.0, Vector3d::UnitY())
+                        * AngleAxisd(0.0, Vector3d::UnitX());
+    Affine3d T_world_robot = Affine3d::Identity();
+    T_world_robot.linear() = R_world_robot;
 
-	// load robot2
-	Vector3d robot2_offset = Vector3d(0.0, 4.0, 0.5);
-	Matrix3d R_world_robot2;
-	R_world_robot2 = AngleAxisd(M_PI, Vector3d::UnitX())
-						* AngleAxisd(0.0, Vector3d::UnitY())
-						* AngleAxisd(0.0, Vector3d::UnitZ());
+    for(int i = 0; i<n_robots; i++) {
+        T_world_robot.translation() = robot_offsets[i];
+        robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false, T_world_robot));
+    }
+    // robots[0]->_q(0) = -0.8;
+    // robots[0]->_q(2) = 0.8;
+    // robots[0]->_q(3) = 45*M_PI/180;
+    // robots[0]->_q(4) = -90*M_PI/180;
+    // robots[0]->_q(5) = 45*M_PI/180;
+    // robots[0]->updateModel();
 
-	Affine3d T_world_robot2 = Affine3d::Identity();
-	T_world_robot2.translation() = robot2_offset;
-	T_world_robot2.linear() = R_world_robot2;
+    // robots[1]->_q(0) = 0.8;
+    // robots[1]->_q(2) = 0.8;
+    // robots[1]->_q(3) = 45*M_PI/180;
+    // robots[1]->_q(4) = -90*M_PI/180;
+    // robots[1]->_q(5) = 45*M_PI/180;
+    // robots[1]->updateModel();
 
-	auto robot2 = new Sai2Model::Sai2Model(robot_file, false, T_world_robot2);
-	robot2->updateModel();
+    // load robot objects
+    Vector3d object_offset = Vector3d(0.0, 5.0, 3.0);
+    Matrix3d R_world_object;
+    R_world_object = AngleAxisd(0.0, Vector3d::UnitZ())
+                        * AngleAxisd(0.0, Vector3d::UnitY())
+                        * AngleAxisd(0.0, Vector3d::UnitX());
 
-	// load objects
-	Vector3d object_offset = Vector3d(0.0, 5.0, 3.0);
-	Matrix3d R_world_object;
-	R_world_object = AngleAxisd(0.0, Vector3d::UnitX())
-						* AngleAxisd(0.0, Vector3d::UnitY())
-						* AngleAxisd(0.0, Vector3d::UnitZ());
+    Affine3d T_world_object = Affine3d::Identity();
+    T_world_object.translation() = object_offset;
+    T_world_object.linear() = R_world_object;
 
-	Affine3d T_world_object = Affine3d::Identity();
-	T_world_object.translation() = object_offset;
-	T_world_object.linear() = R_world_object;
+    auto object = new Sai2Model::Sai2Model(obj_file, false, T_world_object);
+    object->_q(3) = 5.0;
+    object->updateModel();
 
-	auto object = new Sai2Model::Sai2Model(obj_file, false);
-	object->updateModel();
+    // load simulation world
+    auto sim = new Simulation::Sai2Simulation(world_file, false);
+    for(int i = 0; i<n_robots; i++) {
+        sim->setJointPositions(robot_names[i], robots[i]->_q);
+        sim->setJointVelocities(robot_names[i], robots[i]->_dq);
+    }
+    sim->setJointPositions(obj_name, object->_q);
 
-	// load simulation world
-	auto sim = new Simulation::Sai2Simulation(world_file, false);
-	sim->setCollisionRestitution(1.0); //0.759, tennis
-	sim->setCoeffFrictionStatic(0.15);
-	sim->setCoeffFrictionDynamic(0.15);
+    // set co-efficient of restition to zero for force control
+    // see issue: https://github.com/manips-sai/sai2-simulation/issues/1
+    sim->setCollisionRestitution(1.0);
 
-	// read joint positions, velocities, update kinematics
-	sim->getJointPositions(robot1_name, robot1->_q);
-	sim->getJointVelocities(robot1_name, robot1->_dq);
-	robot1->updateKinematics();
+    // set co-efficient of friction also to zero for now as this causes jitter
+    sim->setCoeffFrictionStatic(0.0);
+    sim->setCoeffFrictionDynamic(0.0);
 
-	sim->getJointPositions(robot2_name, robot2->_q);
-	sim->getJointVelocities(robot2_name, robot2->_dq);
-	robot2->updateKinematics();
+    /*------- Set up visualization -------*/
+    // set up error callback
+    glfwSetErrorCallback(glfwError);
 
-	// read object positions, velocities, update kinematics
-	sim->setJointPositions(obj_name, object->_q);
-	sim->setJointVelocities(obj_name, object->_dq);
-	object->updateKinematics();
+    // initialize GLFW
+    glfwInit();
 
-	/*------- Set up visualization -------*/
-	// set up error callback
-	glfwSetErrorCallback(glfwError);
+    // retrieve resolution of computer display and position window accordingly
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
-	// initialize GLFW
-	glfwInit();
+    // information about computer screen and GLUT display window
+    int screenW = mode->width;
+    int screenH = mode->height;
+    int windowW = 0.8 * screenH;
+    int windowH = 0.5 * screenH;
+    int windowPosY = (screenH - windowH) / 2;
+    int windowPosX = windowPosY;
 
-	// retrieve resolution of computer display and position window accordingly
-	GLFWmonitor* primary = glfwGetPrimaryMonitor();
-	const GLFWvidmode* mode = glfwGetVideoMode(primary);
+    // create window and make it current
+    glfwWindowHint(GLFW_VISIBLE, 0);
+    GLFWwindow* window = glfwCreateWindow(windowW, windowH, "SAI2.0 - PandaApplications", NULL, NULL);
+    glfwSetWindowPos(window, windowPosX, windowPosY);
+    glfwShowWindow(window);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
-	// information about computer screen and GLUT display window
-	int screenW = mode->width;
-	int screenH = mode->height;
-	int windowW = 0.8 * screenH;
-	int windowH = 0.5 * screenH;
-	int windowPosY = (screenH - windowH) / 2;
-	int windowPosX = windowPosY;
+    // set callbacks
+    glfwSetKeyCallback(window, keySelect);
+    glfwSetMouseButtonCallback(window, mouseClick);
 
-	// create window and make it current
-	glfwWindowHint(GLFW_VISIBLE, 0);
-	GLFWwindow* window = glfwCreateWindow(windowW, windowH, "SAI2.0 - PandaApplications", NULL, NULL);
-	glfwSetWindowPos(window, windowPosX, windowPosY);
-	glfwShowWindow(window);
-	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+    // init click force widget
+    auto ui_force_widget = new UIForceWidget(robot_names[0], robots[0], graphics);
+    ui_force_widget->setEnable(false);
 
-	// set callbacks
-	glfwSetKeyCallback(window, keySelect);
-	glfwSetMouseButtonCallback(window, mouseClick);
+    // cache variables
+    double last_cursorx, last_cursory;
 
-	// init click force widget. Need to copy this??
-	auto ui_force_widget = new UIForceWidget(robot1_name, robot1, graphics);
-	ui_force_widget->setEnable(false);
+    // init redis client values
+    for(int i = 0; i<n_robots; i++) {
+        redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEYS[i], robots[i]->_q);
+        redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEYS[i], robots[i]->_dq);
+        redis_client.setEigenMatrixJSON(JOINT_ACCEL_KEYS[i], VectorXd::Zero(robots[i]->_dof));
+    }
+    redis_client.setEigenMatrixJSON(BALL_POS_KEY, object->_q);
+    redis_client.setEigenMatrixJSON(BALL_VEL_KEY, object->_dq);
 
-	// cache variables
-	double last_cursorx, last_cursory;
+    k_iter_sim = 0;
+    redis_client.set(SIMULATION_LOOP_ITERATION, std::to_string(0));
+    redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(0));
 
-	// initialize glew
-	glewInitialize();
+    // setup white noise generator
+    const double mean = 0.0;
+    const double stddev = 1.0;  // tune based on your system 
+    std::default_random_engine generator;
+    std::normal_distribution<double> normal_dist(mean, stddev);
 
-	fSimulationRunning = true;
-	thread sim_thread(simulation, robot1, robot2, object, sim, ui_force_widget);
-	
-	// while window is open:
-	while (!glfwWindowShouldClose(window) && fSimulationRunning)
-	{
-		// update graphics. this automatically waits for the correct amount of time
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-		graphics->updateGraphics(robot1_name, robot1);
-		graphics->updateGraphics(robot2_name, robot2);
-		graphics->updateGraphics(obj_name, object);
-		graphics->render(camera_name, width, height);
+    // start simulation thread
+    thread sim_thread(simulation, robots, object, sim, ui_force_widget);
 
-		// swap buffers
-		glfwSwapBuffers(window);
+    // initialize glew
+    //glewInitialize();
 
-		// wait until all GL commands are completed
-		glFinish();
+    // while window is open:
+    while (!glfwWindowShouldClose(window))// && fSimulationRunning)
+    {
+        // update graphics. this automatically waits for the correct amount of time
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        for(int i = 0; i<n_robots; i++) {
+            graphics->updateGraphics(robot_names[i], robots[i]);
+        }
+        graphics->updateGraphics(obj_name, object);
+        graphics->render(camera_name, width, height);
 
-		// check for any OpenGL errors
-		GLenum err;
-		err = glGetError();
-		assert(err == GL_NO_ERROR);
+        // swap buffers
+        glfwSwapBuffers(window);
 
-		// poll for events
-		glfwPollEvents();
+        // wait until all GL commands are completed
+        glFinish();
 
-		// move scene camera as required
-		// graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
-		Eigen::Vector3d cam_depth_axis;
-		cam_depth_axis = camera_lookat - camera_pos;
-		cam_depth_axis.normalize();
-		Eigen::Vector3d cam_up_axis;
-		// cam_up_axis = camera_vertical;
-		// cam_up_axis.normalize();
-		cam_up_axis << 0.0, 0.0, 1.0; //TODO: there might be a better way to do this
-		Eigen::Vector3d cam_roll_axis = (camera_lookat - camera_pos).cross(cam_up_axis);
-		cam_roll_axis.normalize();
-		Eigen::Vector3d cam_lookat_axis = camera_lookat;
-		cam_lookat_axis.normalize();
-		if (fTransXp) {
-			camera_pos = camera_pos + 0.05*cam_roll_axis;
-			camera_lookat = camera_lookat + 0.05*cam_roll_axis;
-		}
-		if (fTransXn) {
-			camera_pos = camera_pos - 0.05*cam_roll_axis;
-			camera_lookat = camera_lookat - 0.05*cam_roll_axis;
-		}
-		if (fTransYp) {
-			// camera_pos = camera_pos + 0.05*cam_lookat_axis;
-			camera_pos = camera_pos + 0.05*cam_up_axis;
-			camera_lookat = camera_lookat + 0.05*cam_up_axis;
-		}
-		if (fTransYn) {
-			// camera_pos = camera_pos - 0.05*cam_lookat_axis;
-			camera_pos = camera_pos - 0.05*cam_up_axis;
-			camera_lookat = camera_lookat - 0.05*cam_up_axis;
-		}
-		if (fTransZp) {
-			camera_pos = camera_pos + 0.1*cam_depth_axis;
-			camera_lookat = camera_lookat + 0.1*cam_depth_axis;
-		}	    
-		if (fTransZn) {
-			camera_pos = camera_pos - 0.1*cam_depth_axis;
-			camera_lookat = camera_lookat - 0.1*cam_depth_axis;
-		}
-		if (fRotPanTilt) {
-			// get current cursor position
-			double cursorx, cursory;
-			glfwGetCursorPos(window, &cursorx, &cursory);
-			//TODO: might need to re-scale from screen units to physical units
-			double compass = 0.006*(cursorx - last_cursorx);
-			double azimuth = 0.006*(cursory - last_cursory);
-			double radius = (camera_pos - camera_lookat).norm();
-			Eigen::Matrix3d m_tilt; m_tilt = Eigen::AngleAxisd(azimuth, -cam_roll_axis);
-			camera_pos = camera_lookat + m_tilt*(camera_pos - camera_lookat);
-			Eigen::Matrix3d m_pan; m_pan = Eigen::AngleAxisd(compass, -cam_up_axis);
-			camera_pos = camera_lookat + m_pan*(camera_pos - camera_lookat);
-		}
-		graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
-		glfwGetCursorPos(window, &last_cursorx, &last_cursory);
+        // check for any OpenGL errors
+        GLenum err;
+        err = glGetError();
+        assert(err == GL_NO_ERROR);
 
-		ui_force_widget->setEnable(fRobotLinkSelect);
-		if (fRobotLinkSelect)
-		{
-			double cursorx, cursory;
-			int wwidth_scr, wheight_scr;
-			int wwidth_pix, wheight_pix;
-			std::string ret_link_name;
-			Eigen::Vector3d ret_pos;
+        // poll for events
+        glfwPollEvents();
 
-			// get current cursor position
-			glfwGetCursorPos(window, &cursorx, &cursory);
+        // move scene camera as required
+        // graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
+        Eigen::Vector3d cam_depth_axis;
+        cam_depth_axis = camera_lookat - camera_pos;
+        cam_depth_axis.normalize();
+        Eigen::Vector3d cam_up_axis;
+        // cam_up_axis = camera_vertical;
+        // cam_up_axis.normalize();
+        cam_up_axis << 0.0, 0.0, 1.0; //TODO: there might be a better way to do this
+        Eigen::Vector3d cam_roll_axis = (camera_lookat - camera_pos).cross(cam_up_axis);
+        cam_roll_axis.normalize();
+        Eigen::Vector3d cam_lookat_axis = camera_lookat;
+        cam_lookat_axis.normalize();
 
-			glfwGetWindowSize(window, &wwidth_scr, &wheight_scr);
-			glfwGetFramebufferSize(window, &wwidth_pix, &wheight_pix);
+        if (fTransXp) {
+            camera_pos = camera_pos + 0.05*cam_roll_axis;
+            camera_lookat = camera_lookat + 0.05*cam_roll_axis;
+        }
+        if (fTransXn) {
+            camera_pos = camera_pos - 0.05*cam_roll_axis;
+            camera_lookat = camera_lookat - 0.05*cam_roll_axis;
+        }
+        if (fTransYp) {
+            // camera_pos = camera_pos + 0.05*cam_lookat_axis;
+            camera_pos = camera_pos + 0.05*cam_up_axis;
+            camera_lookat = camera_lookat + 0.05*cam_up_axis;
+        }
+        if (fTransYn) {
+            // camera_pos = camera_pos - 0.05*cam_lookat_axis;
+            camera_pos = camera_pos - 0.05*cam_up_axis;
+            camera_lookat = camera_lookat - 0.05*cam_up_axis;
+        }
+        if (fTransZp) {
+            camera_pos = camera_pos + 0.1*cam_depth_axis;
+            camera_lookat = camera_lookat + 0.1*cam_depth_axis;
+        }
+        if (fTransZn) {
+            camera_pos = camera_pos - 0.1*cam_depth_axis;
+            camera_lookat = camera_lookat - 0.1*cam_depth_axis;
+        }
+        if (fRotPanTilt) {
+            // get current cursor position
+            double cursorx, cursory;
+            glfwGetCursorPos(window, &cursorx, &cursory);
+            //TODO: might need to re-scale from screen units to physical units
+            double compass = 0.006*(cursorx - last_cursorx);
+            double azimuth = 0.006*(cursory - last_cursory);
+            double radius = (camera_pos - camera_lookat).norm();
+            Eigen::Matrix3d m_tilt; m_tilt = Eigen::AngleAxisd(azimuth, -cam_roll_axis);
+            camera_pos = camera_lookat + m_tilt*(camera_pos - camera_lookat);
+            Eigen::Matrix3d m_pan; m_pan = Eigen::AngleAxisd(compass, -cam_up_axis);
+            camera_pos = camera_lookat + m_pan*(camera_pos - camera_lookat);
+        }
+        if (fTransXp || fTransXn || fTransYp || fTransYn || fTransZp || fTransZn || fRotPanTilt)
+        {
+            cout << "Updated camera position:\n" << camera_pos << endl;
+            cout << "Updated camera lookat:\n" << camera_lookat << endl;
+        }
+        graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
+        glfwGetCursorPos(window, &last_cursorx, &last_cursory);
 
-			int viewx = floor(cursorx / wwidth_scr * wwidth_pix);
-			int viewy = floor(cursory / wheight_scr * wheight_pix);
+        ui_force_widget->setEnable(fRobotLinkSelect);
+        if (fRobotLinkSelect)
+        {
+            double cursorx, cursory;
+            int wwidth_scr, wheight_scr;
+            int wwidth_pix, wheight_pix;
+            std::string ret_link_name;
+            Eigen::Vector3d ret_pos;
 
-			if (cursorx > 0 && cursory > 0)
-			{
-				ui_force_widget->setInteractionParams(camera_name, viewx, wheight_pix - viewy, wwidth_pix, wheight_pix);
-				//TODO: this behavior might be wrong. this will allow the user to click elsewhere in the screen
-				// then drag the mouse over a link to start applying a force to it.
-			}
-		}
-		if(fToss) // retoss a ball
-		{
-			object->_q(0) = 0.0;
-			object->_q(1) = .0;
-			object->_q(2) = 0.0;
-			object->_dq(0) = +0.05;//-.5+0.01*(rand()%150);
-			object->_dq(1) = -6.9;//-9.0+0.02*(rand()%100); // 7.9 is a good value
-			object->_dq(2) = 5.0;
-			object->_dq(3) = 0.0; // x spin
-			object->_dq(4) = 0.0; // x spin
-			object->_dq(5) = 0.0; // x spin
+            // get current cursor position
+            glfwGetCursorPos(window, &cursorx, &cursory);
 
-			sim->setJointPositions(obj_name, object->_q);
-			sim->setJointVelocities(obj_name, object->_dq);
-		}
-	}
+            glfwGetWindowSize(window, &wwidth_scr, &wheight_scr);
+            glfwGetFramebufferSize(window, &wwidth_pix, &wheight_pix);
 
-	// stop simulation
-	fSimulationRunning = false;
-	sim_thread.join();
+            int viewx = floor(cursorx / wwidth_scr * wwidth_pix);
+            int viewy = floor(cursory / wheight_scr * wheight_pix);
 
-	// destroy context
-	glfwSetWindowShouldClose(window,GL_TRUE);
-	glfwDestroyWindow(window);
+            if (cursorx > 0 && cursory > 0)
+            {
+                ui_force_widget->setInteractionParams(camera_name, viewx, wheight_pix - viewy, wwidth_pix, wheight_pix);
+                //TODO: this behavior might be wrong. this will allow the user to click elsewhere in the screen
+                // then drag the mouse over a link to start applying a force to it.
+            }
+        }
+        if(fToss) // retoss a ball
+        {
+            object->_q(0) = ball_toss_pos(0);
+            object->_q(1) = ball_toss_pos(1);
+            object->_q(2) = ball_toss_pos(2);
+            object->_dq(0) = ball_toss_vel(0) + 1.0*normal_dist(generator);//-.5+0.01*(rand()%150);
+            object->_dq(1) = ball_toss_vel(1) + 0.5*normal_dist(generator);//-9.0+0.02*(rand()%100); // 7.9 is a good value
+            object->_dq(2) = ball_toss_vel(2) + 0.5*normal_dist(generator);
+            object->_dq(3) = 0.0; // x spin
+            object->_dq(4) = 0.0; // x spin
+            object->_dq(5) = 0.0; // x spin
 
-	// terminate
-	glfwTerminate();
+            object->updateModel();
 
-	return 0;
+            cout << "Tossing ball, \nposition:\n" << object->_q.head(3) << "\nvel:\n" << object->_dq.head(3) << endl;
+
+            sim->setJointPositions(obj_name, object->_q);
+            sim->setJointVelocities(obj_name, object->_dq);
+        }
+    }
+
+    // wait for simulation to finish
+    fSimulationRunning = false;
+    sim_thread.join();
+
+    // destroy context
+    glfwSetWindowShouldClose(window,GL_TRUE);
+    glfwDestroyWindow(window);
+
+    // terminate
+    glfwTerminate();
+
+    return 0;
 }
 
 //------------------------------------------------------------------------------
-void simulation(Sai2Model::Sai2Model* robot1, Sai2Model::Sai2Model* robot2, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget) {
+void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* object, Simulation::Sai2Simulation* sim, UIForceWidget *ui_force_widget)
+{
+    redis_client.set(CONTROLLER_START_FLAG, "false");
+    // prepare simulation
+    for(int i=0; i<n_robots; i++){
+        redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEYS[i], VectorXd::Zero(robots[i]->dof()));
+    }
 
-	int dof1 = robot1->dof();
-	VectorXd command_torques1 = VectorXd::Zero(dof1);
-	redis_client.setEigenMatrixJSON(JOINT_TORQUES1_COMMANDED_KEY, command_torques1);
+    // create a timer
+    LoopTimer timer;
+    timer.initializeTimer();
+    timer.setLoopFrequency(1000);
+    double time_slowdown_factor = 1.0;  // adjust to higher value (i.e. 2) to slow down simulation by this factor relative to real time (for slower machines)
+    bool fTimerDidSleep = true;
+    double start_time = timer.elapsedTime() / time_slowdown_factor; // secs
+    double last_time = start_time;
 
-	int dof2 = robot2->dof();
-	VectorXd command_torques2 = VectorXd::Zero(dof2);
-	redis_client.setEigenMatrixJSON(JOINT_TORQUES2_COMMANDED_KEY, command_torques2);
+    // manual object offset since the offset in world.urdf file since positionInWorld() doesn't account for this
+    Vector3d obj_offset;
+    obj_offset << 0, -0.35, 0.544;
+    Vector3d robot_offset;
+    robot_offset << 0.0, 0.3, 0.0;
+    double kvj = 10;  // velocity damping for ui force drag
 
-	// create a timer
-	LoopTimer timer;
-	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
-	double time_slowdown_factor = 1.0;
-	bool fTimerDidSleep = true;
-	double start_time = timer.elapsedTime() / time_slowdown_factor;
-	double last_time = start_time; //secs
-	
+    // setup redis client data container for pipeset (batch write)
+    std::vector<std::pair<std::string, std::string>> redis_data(6);  // set with the number of keys to write
 
-	// init variables
-	VectorXd g1(dof1);
-	VectorXd g2(dof2);
-
-	Eigen::Vector3d ui_force;
-	ui_force.setZero();
-
-	Eigen::VectorXd ui_force_command_torques;
-	ui_force_command_torques.setZero();
-    
-    // Init prediction
-    Eigen::Vector3d predictedLanding;
-    predictedLanding.setZero();
-
-	while (fSimulationRunning) {
-		fTimerDidSleep = timer.waitForNextLoop();
-
-		// get gravity torques
-		robot1->gravityVector(g1);
-		robot2->gravityVector(g2);
-
-		// read arm torques from redis and apply to simulated robot
-		command_torques1 = redis_client.getEigenMatrixJSON(JOINT_TORQUES1_COMMANDED_KEY);
-		command_torques2 = redis_client.getEigenMatrixJSON(JOINT_TORQUES2_COMMANDED_KEY);
-		
-		ui_force_widget->getUIForce(ui_force);
-		ui_force_widget->getUIJointTorques(ui_force_command_torques);
-
-		if (fRobotLinkSelect)
-			sim->setJointTorques(robot1_name, command_torques1 + ui_force_command_torques + g1);
-		else
-			sim->setJointTorques(robot1_name, command_torques1 + g1);
-			sim->setJointTorques(robot2_name, command_torques2 + g2);
-
-		// integrate forward
-		double curr_time = timer.elapsedTime();
-		double loop_dt = curr_time - last_time; 
-		sim->integrate(0.001);
-
-		// read joint positions, velocities, update model
-		sim->setJointPositions(robot1_name, robot1->_q);
-		sim->setJointVelocities(robot1_name, robot1->_dq);
-		robot1->updateModel();
-
-		sim->setJointPositions(robot2_name, robot2->_q);
-		sim->setJointVelocities(robot2_name, robot2->_dq);
-		robot2->updateModel();
-
-		// read object positions, velocities, update model
-		sim->getJointPositions(obj_name, object->_q);
-		sim->getJointVelocities(obj_name, object->_dq);
-		object->updateModel();
-
-		// write new robot state to redis
-		redis_client.setEigenMatrixJSON(JOINT_ANGLES1_KEY, robot1->_q);
-		redis_client.setEigenMatrixJSON(JOINT_VELOCITIES1_KEY, robot1->_dq);
-
-		redis_client.setEigenMatrixJSON(JOINT_ANGLES2_KEY, robot2->_q);
-		redis_client.setEigenMatrixJSON(JOINT_VELOCITIES2_KEY, robot2->_dq);
-
-		// write new object state to redis
-		redis_client.setEigenMatrixJSON(OBJ_POSITION_KEY, object->_q);
-		redis_client.setEigenMatrixJSON(OBJ_VELOCITIES_KEY, object->_dq);
-        
-        if (object->_environmental_contacts.size() != 0) {
-                Vector3d ball_launch_pos;
-                object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
-                Vector3d ball_launch_vel;
-                object->linearVelocityInWorld(ball_launch_vel, obj_link_name, Vector3d::Zero());
-                double time_flight = (-ball_launch_vel(2) + sqrt(pow(ball_launch_vel(2),2.0) - 4.0*(-9.81/2.0)*ball_launch_pos(2)))/(2*(-9.81/2)); // quadratic equation
-                double x_f = ball_launch_vel(0)*time_flight + ball_launch_pos(0);
-                double y_f = ball_launch_vel(1)*time_flight + ball_launch_pos(1);
-                predictedLanding = Vector3d(x_f, y_f, 0);
+    fSimulationRunning = true;
+    while (fSimulationRunning) {
+        // run sim until catches up with control loop
+        k_iter_ctrl = std::stoull(redis_client.get(CONTROLLER_LOOP_ITERATION));
+        controller_start_flag = redis_client.get(CONTROLLER_START_FLAG) == "true";
+        if(!controller_start_flag)
+        {
+            for(int i=0; i<n_robots; i++){
+            VectorXd custom_q = redis_client.getEigenMatrixJSON(CUSTOM_JOINT_ANGLES_KEYS[i]);
+            sim->setJointPositions(robot_names[i], custom_q);
+            robots[i]->_q = custom_q;
+            robots[i]->_dq = VectorXd::Zero(robots[i]->dof());
+            robots[i]->updateModel();
             }
-        
-        // write predicted landing
-        redis_client.setEigenMatrixJSON(OBJ_PREDICT_KEY, predictedLanding);
-        
-        //update last time
-        last_time = curr_time;
-	}
 
-	double end_time = timer.elapsedTime();
-	std::cout << "\n";
-	std::cout << "Simulation Loop run time  : " << end_time << " seconds\n";
-	std::cout << "Simulation Loop updates   : " << timer.elapsedCycles() << "\n";
-	std::cout << "Simulation Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
+            ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
+            ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
+
+            VectorXd ball_pos = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
+            object->_q = ball_pos;
+            object->_dq = Vector3d::Zero();
+            sim->setJointPositions(obj_name, object->_q);
+            sim->setJointVelocities(obj_name, object->_dq);
+            object->updateModel();
+            
+            for(int i=0; i<n_robots; i++){
+                redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEYS[i], robots[i]->_q);
+                redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEYS[i], robots[i]->_dq);
+            }
+
+            redis_client.setEigenMatrixJSON(BALL_POS_KEY, object->_q);
+            redis_client.setEigenMatrixJSON(BALL_VEL_KEY, object->_dq);
+
+        }
+        else 
+        {
+            while(k_iter_sim < k_iter_ctrl) {
+                ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
+                ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
+
+                for(int i=0; i<n_robots; i++){
+                VectorXd command_torques = VectorXd::Zero(robots[i]->dof());
+                command_torques = redis_client.getEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEYS[i]);
+
+                // z axis prismatic joint is virtual, don't allow commanded actuation
+                VectorXd sim_torques = command_torques;
+                sim->setJointTorques(robot_names[i], sim_torques);
+                }
+
+                sim->integrate(0.001);
+
+                // read joint positions, velocities, update model
+                for(int i=0; i<n_robots; i++){
+                sim->getJointPositions(robot_names[i], robots[i]->_q);
+                sim->getJointVelocities(robot_names[i], robots[i]->_dq);
+                robots[i]->updateModel();
+
+                // get accel
+                VectorXd ddq(robots[i]->dof());
+                sim->getJointAccelerations(robot_names[i], robots[i]->_ddq);
+                }
+
+                sim->getJointPositions(obj_name, object->_q);
+                sim->getJointVelocities(obj_name, object->_dq);
+                object->updateModel();
+
+                k_iter_sim++;
+
+                // publish all redis keys at once to reduce multiple redis calls that slow down simulation
+                // shown explicitly here, but you can define a helper function to publish data
+                for(int i=0; i<n_robots; i++){
+                redis_data.at(0) = std::pair<string, string>(JOINT_ANGLES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_q));
+                redis_data.at(1) = std::pair<string, string>(JOINT_VELOCITIES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_dq));
+                redis_data.at(2) = std::pair<string, string>(JOINT_ACCEL_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_ddq));
+                }
+                redis_data.at(3) = std::pair<string, string>(BALL_POS_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
+                redis_data.at(4) = std::pair<string, string>(BALL_VEL_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
+                redis_data.at(5) = std::pair<string, string>(SIMULATION_LOOP_ITERATION, std::to_string(k_iter_sim)); // tell controller sim loop is done
+
+                redis_client.pipeset(redis_data);
+
+                //if (object->_environmental_contacts.size() != 0) {
+                //        Vector3d ball_launch_pos;
+                //        object->positionInWorld(ball_launch_pos, obj_link_name, Vector3d::Zero());
+                //        Vector3d ball_launch_vel;
+                //        object->linearVelocityInWorld(ball_launch_vel, obj_link_name, Vector3d::Zero());
+                //        double time_flight = (-ball_launch_vel(2) + sqrt(pow(ball_launch_vel(2),2.0) - 4.0*(-9.81/2.0)*ball_launch_pos(2)))/(2*(-9.81/2)); // quadratic equation
+                //        double x_f = ball_launch_vel(0)*time_flight + ball_launch_pos(0);
+                //        double y_f = ball_launch_vel(1)*time_flight + ball_launch_pos(1);
+                //        predictedLanding = Vector3d(x_f, y_f, 0);
+                //    }
+        
+            }
+        }
+    }
+
+    double end_time = timer.elapsedTime() / time_slowdown_factor;
+    std::cout << "\n";
+    std::cout << "Simulation Loop run time  : " << end_time << " seconds\n";
+    std::cout << "Simulation Loop updates   : " << k_iter_sim << "\n";
+
 }
 
 //------------------------------------------------------------------------------
 
 void glfwError(int error, const char* description) {
-	cerr << "GLFW Error: " << description << endl;
-	exit(1);
+    cerr << "GLFW Error: " << description << endl;
+    exit(1);
 }
 
 //------------------------------------------------------------------------------
 
 bool glewInitialize() {
-	bool ret = false;
-	#ifdef GLEW_VERSION
-	if (glewInit() != GLEW_OK) {
-		cout << "Failed to initialize GLEW library" << endl;
-		cout << glewGetErrorString(ret) << endl;
-		glfwTerminate();
-	} else {
-		ret = true;
-	}
-	#endif
-	return ret;
+    bool ret = false;
+    #ifdef GLEW_VERSION
+    if (glewInit() != GLEW_OK) {
+        cout << "Failed to initialize GLEW library" << endl;
+        cout << glewGetErrorString(ret) << endl;
+        glfwTerminate();
+    } else {
+        ret = true;
+    }
+    #endif
+    return ret;
 }
 
 //------------------------------------------------------------------------------
 
 void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	bool set = (action != GLFW_RELEASE);
-	switch(key) {
-		case GLFW_KEY_ESCAPE:
-			// exit application
-			fSimulationRunning = false;
-			glfwSetWindowShouldClose(window, GL_TRUE);
-			break;
-		case GLFW_KEY_RIGHT:
-			fTransXp = set;
-			break;
-		case GLFW_KEY_LEFT:
-			fTransXn = set;
-			break;
-		case GLFW_KEY_UP:
-			fTransYp = set;
-			break;
-		case GLFW_KEY_DOWN:
-			fTransYn = set;
-			break;
-		case GLFW_KEY_A:
-			fTransZp = set;
-			break;
-		case GLFW_KEY_Z:
-			fTransZn = set;
-			break;
-		case GLFW_KEY_T: // re-toss a ball
-			fToss = set;
-			break;
-		default:
-			break;
-	}
+    bool set = (action != GLFW_RELEASE);
+    switch(key) {
+        case GLFW_KEY_ESCAPE:
+            // exit application
+            fSimulationRunning = false;
+            glfwSetWindowShouldClose(window, GL_TRUE);
+            break;
+        case GLFW_KEY_RIGHT:
+            fTransXp = set;
+            break;
+        case GLFW_KEY_LEFT:
+            fTransXn = set;
+            break;
+        case GLFW_KEY_UP:
+            fTransYp = set;
+            break;
+        case GLFW_KEY_DOWN:
+            fTransYn = set;
+            break;
+        case GLFW_KEY_A:
+            fTransZp = set;
+            break;
+        case GLFW_KEY_Z:
+            fTransZn = set;
+            break;
+        case GLFW_KEY_T: // re-toss a ball
+            fToss = set;
+            break;
+        default:
+            break;
+    }
 }
 
 //------------------------------------------------------------------------------
 
 void mouseClick(GLFWwindow* window, int button, int action, int mods) {
-	bool set = (action != GLFW_RELEASE);
-	//TODO: mouse interaction with robot
-	switch (button) {
-		// left click pans and tilts
-		case GLFW_MOUSE_BUTTON_LEFT:
-			fRotPanTilt = set;
-			// NOTE: the code below is recommended but doesn't work well
-			// if (fRotPanTilt) {
-			// 	// lock cursor
-			// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			// } else {
-			// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			// }
-			break;
-		// if right click: don't handle. this is for menu selection
-		case GLFW_MOUSE_BUTTON_RIGHT:
-			fRobotLinkSelect = set;
-			break;
-		// if middle click: don't handle. doesn't work well on laptops
-		case GLFW_MOUSE_BUTTON_MIDDLE:
-			break;
-		default:
-			break;
-	}
+    bool set = (action != GLFW_RELEASE);
+    //TODO: mouse interaction with robot
+    switch (button) {
+        // left click pans and tilts
+        case GLFW_MOUSE_BUTTON_LEFT:
+            fRotPanTilt = set;
+            // NOTE: the code below is recommended but doesn't work well
+            // if (fRotPanTilt) {
+            //  // lock cursor
+            //  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            // } else {
+            //  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            // }
+            break;
+        // if right click: don't handle. this is for menu selection
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            fRobotLinkSelect = set;
+            break;
+        // if middle click: don't handle. doesn't work well on laptops
+        case GLFW_MOUSE_BUTTON_MIDDLE:
+            break;
+        default:
+            break;
+    }
 }
-
