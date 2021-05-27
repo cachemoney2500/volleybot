@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <string>
+#include <random>
 
 #include <signal.h>
 
@@ -180,6 +181,12 @@ int main(int argc, char* argv[]) {
     redis_client.set(SIMULATION_LOOP_ITERATION, std::to_string(0));
     redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(0));
 
+	// setup white noise generator
+    const double mean = 0.0;
+    const double stddev = 1.0;  // tune based on your system 
+    std::default_random_engine generator;
+    std::normal_distribution<double> normal_dist(mean, stddev);
+
 	// start simulation thread
 	thread sim_thread(simulation, robot, object, sim, ui_force_widget);
 
@@ -301,16 +308,16 @@ int main(int argc, char* argv[]) {
 			object->_q(0) = ball_toss_pos(0);
 			object->_q(1) = ball_toss_pos(1);
 			object->_q(2) = ball_toss_pos(2);
-			object->_dq(0) = ball_toss_vel(0);//-.5+0.01*(rand()%150);
-			object->_dq(1) = ball_toss_vel(1);//-9.0+0.02*(rand()%100); // 7.9 is a good value
-			object->_dq(2) = ball_toss_vel(2);
+			object->_dq(0) = ball_toss_vel(0) + 1.0*normal_dist(generator);//-.5+0.01*(rand()%150);
+			object->_dq(1) = ball_toss_vel(1) + 0.5*normal_dist(generator);//-9.0+0.02*(rand()%100); // 7.9 is a good value
+			object->_dq(2) = ball_toss_vel(2) + 0.5*normal_dist(generator);
 			object->_dq(3) = 0.0; // x spin
 			object->_dq(4) = 0.0; // x spin
 			object->_dq(5) = 0.0; // x spin
 
             object->updateModel();
 
-            cout << "Tossing ball, \nposition:\n" << ball_toss_pos << "\nvel:\n" << ball_toss_vel << endl;
+            cout << "Tossing ball, \nposition:\n" << object->_q.head(3) << "\nvel:\n" << object->_dq.head(3) << endl;
 
 			sim->setJointPositions(obj_name, object->_q);
 			sim->setJointVelocities(obj_name, object->_dq);

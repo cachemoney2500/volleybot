@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <string>
 #include <chrono>
+#include <random>
 
 class VolleybotController
 {
@@ -54,6 +55,9 @@ public:
     VectorXd _ddq;
 
     double _dz_hip_foot;
+
+    std::default_random_engine _generator;
+    std::uniform_real_distribution<double> _uniform_dist;
 
 private:
 

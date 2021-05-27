@@ -1,6 +1,7 @@
 #include "VolleybotController.h"
 
-VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball)
+VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball):
+    _uniform_dist(0.0, 1.0)
 {
 	_robot = robot;
 	int dof = _robot->_dof;
@@ -140,33 +141,40 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
 
     if(_state == IDLE)
     {
-        if((pos_pred - pos_ee_cur).norm() <= 4.0)
+        if((pos_pred - pos_ee_cur).norm() <= 8.0)
         {
             _state = BALL_TRACKING;
+            _hit_height = 0.6 + 0.3 * _uniform_dist(_generator);
+            cout << "setting hit height to " << _hit_height << endl;
             cout << "State transition to BALL_TRACKING" << endl;
         }
     }
     else if(_state == BALL_TRACKING)
     {
         _desired_position.head(3) = _robot->_q.head(3) + (pos_pred - pos_ee_cur);
+        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
 
         Vector3d v_ball_ee = R_ee.transpose() * vel;
-        if(v_ball_ee(2) >= 0.0 && (pos - pos_ee_cur).norm() <= 0.1)
+        if(v_ball_ee(2) >= 0.0 && (pos - pos_ee_cur).norm() <= 0.5)
         {
             _state = IDLE;
+            _R_ee_desired = Matrix3d::Identity();
             cout << "State transition to IDLE" << endl;
         }
     }
 
     if (k_iter_ctrl % 100 == 0)
     {
-        std::cout << "pos ball:\n" << pos << std::endl;
-        std::cout << "vel ball:\n" << vel << std::endl;
-        std::cout << "pos pred:\n" << pos_pred << std::endl;
-        std::cout << "vel pred:\n" << vel_pred << std::endl;
-        std::cout << "q:\n" << _robot->_q.head(3) << std::endl;
-        std::cout << "eepos:\n" << pos_ee_cur << std::endl;
-        std::cout << "dpos:\n" << _robot->_q.head(3) + (pos_pred - pos_ee_cur) << std::endl;
+        //std::cout << "pos ball:\n" << pos << std::endl;
+        //std::cout << "vel ball:\n" << vel << std::endl;
+        //std::cout << "pos pred:\n" << pos_pred << std::endl;
+        //std::cout << "vel pred:\n" << vel_pred << std::endl;
+        //std::cout << "vel pred n:\n" << vel_pred.normalized() << std::endl;
+        //std::cout << "R_ee:\n" << R_ee << std::endl;
+        //std::cout << "R_des:\n" << _R_ee_desired << std::endl;
+        //std::cout << "q:\n" << _robot->_q.head(3) << std::endl;
+        //std::cout << "eepos:\n" << pos_ee_cur << std::endl;
+        //std::cout << "dpos:\n" << _robot->_q.head(3) + (pos_pred - pos_ee_cur) << std::endl;
     }
 
     //if (k_iter_ctrl % 100 == 0)
@@ -382,14 +390,11 @@ void VolleybotController::forward_prediction(Vector3d pos, Vector3d vel, Vector3
                 vel(2) - 9.81*dt;
 }
 
-Matrix3d VolleybotController::compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init){
-  //double tf = -2*vel_incident(2)/9.81;
-  //Vector3d a;
-  //a << 0,0,-9.81
-  ////Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
-  //Vector3d z_des = (.5*(vel_incident+vel_des)).normalized();
-  //Matrix3d R_des = R_init;
-  //R_des.col(1) = R_des.col(0).cross(z_des);
-  //R_des.col(2) = z_des;
-  return R_init;
+Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d vel_des, Matrix3d R_init){
+  Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
+  Matrix3d R_des = R_init;
+  R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
+  R_des.col(2) = z_des.normalized();
+  R_des.col(0) = R_des.col(1).cross(R_des.col(2));
+  return R_des;
 }
