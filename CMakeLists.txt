@@ -82,7 +82,6 @@ add_subdirectory(src)
 # NOTE: this requires an install build
 SET(APP_RESOURCE_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources)
 FILE(MAKE_DIRECTORY ${APP_RESOURCE_DIR})
-FILE(COPY model/world.urdf DESTINATION ${APP_RESOURCE_DIR})
+FILE(COPY model/world_test.urdf DESTINATION ${APP_RESOURCE_DIR})
 FILE(COPY model/legged_panda.urdf DESTINATION ${APP_RESOURCE_DIR})
 FILE(COPY model/volleyBall.urdf DESTINATION ${APP_RESOURCE_DIR})
-

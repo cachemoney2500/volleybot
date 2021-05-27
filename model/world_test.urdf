@@ -11,7 +11,7 @@
 
 	<robot name="mmp_panda2">
 		<model dir="./resources" path="legged_panda.urdf" name="mmp_panda2" />
-		<origin xyz="0 40. 0.5" rpy="0 0 0" />
+		<origin xyz="0 4. 0.5" rpy="0 0 0" />
 	</robot>
 
 	<robot name="ball">

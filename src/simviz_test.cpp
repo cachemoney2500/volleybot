@@ -21,11 +21,11 @@ using namespace std;
 using namespace Eigen;
 
 // specify urdf and robots
-const string world_file = "./resources/world.urdf";
+const string world_file = "./resources/world_test.urdf";
 
 const vector<string> robot_files = {
     "./resources/legged_panda.urdf",
-    "./resources/legged_panda.urdf"   
+    "./resources/legged_panda.urdf"
 };
 const vector<string> robot_names = {
     "mmp_panda1",
@@ -143,21 +143,21 @@ int main(int argc, char* argv[]) {
 
     for(int i = 0; i<n_robots; i++) {
         T_world_robot.translation() = robot_offsets[i];
-        robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false, T_world_robot));
+        robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false));//, T_world_robot));
     }
     // robots[0]->_q(0) = -0.8;
     // robots[0]->_q(2) = 0.8;
     // robots[0]->_q(3) = 45*M_PI/180;
     // robots[0]->_q(4) = -90*M_PI/180;
     // robots[0]->_q(5) = 45*M_PI/180;
-    // robots[0]->updateModel();
+    robots[0]->updateModel();
 
     // robots[1]->_q(0) = 0.8;
     // robots[1]->_q(2) = 0.8;
     // robots[1]->_q(3) = 45*M_PI/180;
     // robots[1]->_q(4) = -90*M_PI/180;
     // robots[1]->_q(5) = 45*M_PI/180;
-    // robots[1]->updateModel();
+    robots[1]->updateModel();
 
     // load robot objects
     Vector3d object_offset = Vector3d(0.0, 5.0, 3.0);
@@ -177,7 +177,9 @@ int main(int argc, char* argv[]) {
     // load simulation world
     auto sim = new Simulation::Sai2Simulation(world_file, false);
     for(int i = 0; i<n_robots; i++) {
+        cout << robots[i] << endl;
         sim->setJointPositions(robot_names[i], robots[i]->_q);
+
         sim->setJointVelocities(robot_names[i], robots[i]->_dq);
     }
     sim->setJointPositions(obj_name, object->_q);
@@ -243,7 +245,7 @@ int main(int argc, char* argv[]) {
 
     // setup white noise generator
     const double mean = 0.0;
-    const double stddev = 1.0;  // tune based on your system 
+    const double stddev = 1.0;  // tune based on your system
     std::default_random_engine generator;
     std::normal_distribution<double> normal_dist(mean, stddev);
 
@@ -452,7 +454,7 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
             sim->setJointPositions(obj_name, object->_q);
             sim->setJointVelocities(obj_name, object->_dq);
             object->updateModel();
-            
+
             for(int i=0; i<n_robots; i++){
                 redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEYS[i], robots[i]->_q);
                 redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEYS[i], robots[i]->_dq);
@@ -462,7 +464,7 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
             redis_client.setEigenMatrixJSON(BALL_VEL_KEY, object->_dq);
 
         }
-        else 
+        else
         {
             while(k_iter_sim < k_iter_ctrl) {
                 ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
@@ -519,7 +521,7 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
                 //        double y_f = ball_launch_vel(1)*time_flight + ball_launch_pos(1);
                 //        predictedLanding = Vector3d(x_f, y_f, 0);
                 //    }
-        
+
             }
         }
     }

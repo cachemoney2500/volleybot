@@ -154,9 +154,9 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
         _desired_position.head(3) = _robot->_q.head(3) + (pos_pred - pos_ee_cur);
         //_R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
         if (pos_pred(2)>0){
-            pos_land_des << 0,-4.5,_hit_height;
+            pos_land_des << 0,-4.5,0;//_hit_height;
         }else{
-            pos_land_des << 0,4.5,_hit_height;
+            pos_land_des << 0,4.5,0;//_hit_height;
         }
         _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, pos_land_des, R_ee);
 
