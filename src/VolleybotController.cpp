@@ -134,7 +134,7 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
     Vector3d pos_pred, vel_pred;
     forward_prediction(pos, vel, pos_pred, vel_pred, tof);
 
-    Vector3d pos_ee_cur;
+    Vector3d pos_ee_cur, pos_land_des;
     _robot->position(pos_ee_cur, "link7");
     Matrix3d R_ee;
     _robot->rotation(R_ee, "link7");
@@ -152,7 +152,13 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
     else if(_state == BALL_TRACKING)
     {
         _desired_position.head(3) = _robot->_q.head(3) + (pos_pred - pos_ee_cur);
-        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
+        //_R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
+        if (pos_pred(2)>0){
+            pos_land_des << 0,-4.5,_hit_height;
+        }else{
+            pos_land_des << 0,4.5,_hit_height;
+        }
+        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, pos_land_des, R_ee);
 
         Vector3d v_ball_ee = R_ee.transpose() * vel;
         if(v_ball_ee(2) >= 0.0 && (pos - pos_ee_cur).norm() <= 0.5)
@@ -181,7 +187,7 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
     //{
     //    std::cout << "pos ball:\n" << pos << std::endl;
     //    std::cout << "vel ball:\n" << vel << std::endl;
-    //    
+    //
     //    Vector3d pos_ee;
     //    _robot->position(pos_ee, "link7");
     //    std::cout << "pos base real:\n" << pos_ee << std::endl;
@@ -328,15 +334,15 @@ void VolleybotController::legControl(Eigen::VectorXd& leg_torques, Vector3d base
     _robot->gravityVector(g_legs_reject_accel, -base_accel);
     g_legs_reject_accel.head(11) = VectorXd::Zero(dof - 6);
 
-    Vector3d f_foot_left = -_Kp_leg*G_control_axes*(dr_foot_left - dr_des) - 
+    Vector3d f_foot_left = -_Kp_leg*G_control_axes*(dr_foot_left - dr_des) -
         _Kv_leg*G_control_axes*(dv_foot_left - dv_des);
-    Vector3d f_foot_right = -_Kp_leg*G_control_axes*(dr_foot_right - dr_des) - 
+    Vector3d f_foot_right = -_Kp_leg*G_control_axes*(dr_foot_right - dr_des) -
         _Kv_leg*G_control_axes*(dv_foot_right - dv_des);
 
     VectorXd tau_balance(dof);
     MatrixXd M_feet = MatrixXd::Identity(dof, dof);
     M_feet.block(11, 11, 6, 6) = _robot->_M.block(11, 11, 6, 6);
-    tau_balance = M_feet * (_Jv_foot_left.transpose() * f_foot_left + 
+    tau_balance = M_feet * (_Jv_foot_left.transpose() * f_foot_left +
             _Jv_foot_right.transpose() * f_foot_right) + g_legs_reject_accel;
 
     VectorXd m_feet = VectorXd::Zero(dof);
@@ -345,14 +351,14 @@ void VolleybotController::legControl(Eigen::VectorXd& leg_torques, Vector3d base
     _robot->rotation(R_foot_left, "LL_foot");
     Vector3d omega_foot_left;
     _robot->angularVelocity(omega_foot_left, "LL_foot");
-    m_feet(13) = (_Kr_feet*R_hip.transpose()*R_foot_left.col(0).cross(R_hip.col(0)) - 
+    m_feet(13) = (_Kr_feet*R_hip.transpose()*R_foot_left.col(0).cross(R_hip.col(0)) -
             _Komega_feet*R_hip.transpose()*omega_foot_left)(1);
 
     Matrix3d R_foot_right;
     _robot->rotation(R_foot_right, "RL_foot");
     Vector3d omega_foot_right;
     _robot->angularVelocity(omega_foot_right, "RL_foot");
-    m_feet(16) = (_Kr_feet*R_hip.transpose()*R_foot_right.col(0).cross(R_hip.col(0)) - 
+    m_feet(16) = (_Kr_feet*R_hip.transpose()*R_foot_right.col(0).cross(R_hip.col(0)) -
             _Komega_feet*R_hip.transpose()*omega_foot_right)(1);
 
     leg_torques = tau_balance + m_feet;
@@ -390,7 +396,20 @@ void VolleybotController::forward_prediction(Vector3d pos, Vector3d vel, Vector3
                 vel(2) - 9.81*dt;
 }
 
-Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d vel_des, Matrix3d R_init){
+// Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d vel_des, Matrix3d R_init){
+//   Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
+//   Matrix3d R_des = R_init;
+//   R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
+//   R_des.col(2) = z_des.normalized();
+//   R_des.col(0) = R_des.col(1).cross(R_des.col(2));
+//   return R_des;
+// }
+
+Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d pos_des, Matrix3d R_init){
+  double tf = -2*vel_incident(2)/9.81;
+  Vector3d a;
+  a << 0,0,-9.81;
+  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
   Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
   Matrix3d R_des = R_init;
   R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
