@@ -1,0 +1,15 @@
+#!/bin/bash
+if [ "$1" == "reset" ]; then
+    echo "RESETTING REDIS KEYS TO DEFAULT"
+    redis-cli set cs225a::volleybot::ball::toss_pos "[0.0, 0.0, 0.0]"
+    redis-cli set cs225a::volleybot::ball::toss_vel "[0.05, -10.0, 3.0]"
+    redis-cli set cs225a::volleybot::robot1::input::q_custom "[0.0, 0.0, 0.15, -1.5707963267948966, 0.5235987755982988, 0.8726646259971648, 0.8726646259971647, 1.0471975511965976, 1.0471975511965976, 1.2217304763960306, 1.5707963267948966, -0.7853981633974483, 1.5707963267948966, -0.7853981633974482, -0.7853981633974483, 1.5707963267948966, -0.7853981633974483]"
+elif [ "$1" == "start" ]; then
+    redis-cli set cs225a::simulation::controller_start_flag "true"
+    echo "Started simulation"
+elif [ "$1" == "stop" ]; then
+    redis-cli set cs225a::simulation::controller_start_flag "stop"
+    echo "Stopped simulation"
+else
+    echo "unknown argument input"
+fi
