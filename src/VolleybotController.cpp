@@ -3,20 +3,20 @@
 VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball):
     _uniform_dist(0.0, 1.0)
 {
-	_robot = robot;
-	int dof = _robot->_dof;
+    _robot = robot;
+    int dof = _robot->_dof;
 
-	_ball = ball;
+    _ball = ball;
 
-	/*
+    /*
      * Initialize the base control joint task
      */
-	_base_task = new Sai2Primitives::JointTask(_robot);
-	_base_task->_use_velocity_saturation_flag = true;
-	_base_task->_use_interpolation_flag = false;
-	_base_task->_saturation_velocity(0) = 4.0;
-	_base_task->_saturation_velocity(1) = 4.0;
-	_base_task->_saturation_velocity(3) = 2.0;
+    _base_task = new Sai2Primitives::JointTask(_robot);
+    _base_task->_use_velocity_saturation_flag = true;
+    _base_task->_use_interpolation_flag = false;
+    _base_task->_saturation_velocity(0) = 4.0;
+    _base_task->_saturation_velocity(1) = 4.0;
+    _base_task->_saturation_velocity(3) = 2.0;
 
     VectorXd kp_base(dof);
     kp_base << 250.0 * _robot->_M(0,0),
@@ -35,7 +35,7 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model:
     _base_task->setNonIsotropicGains(kp_base, kv_base, VectorXd::Zero(dof));
     _base_task->setDynamicDecouplingNone();
 
-	/*
+    /*
      * Leg control gains
      */
     _Kp_leg = Matrix3d::Zero();
@@ -56,7 +56,7 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model:
     _N_no_external(1,1) = 0.0;
     _N_no_external(2,2) = 0.0;
 
-	/*
+    /*
      * Base nullspace
      */
     _N_base_trans = MatrixXd::Zero(dof, dof);
@@ -65,7 +65,7 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model:
     _N_base_trans(2,2) = 1.0;
     _N_base_trans(3,3) = 1.0;
 
-	/*
+    /*
      * Arm nullspace
      */
     _N_posture_ee = MatrixXd::Identity(dof, dof);
@@ -85,30 +85,30 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model:
      */
     _N_posture_reg = MatrixXd::Zero(dof, dof);
 
-	/*
+    /*
      * Initialize posture regularization
      */
-	_posture_regularization_task = new Sai2Primitives::JointTask(_robot);
-	_posture_regularization_task->_use_velocity_saturation_flag = true;
-	_posture_regularization_task->_use_interpolation_flag = false;
-	_posture_regularization_task->_kp = 250.0;
-	_posture_regularization_task->_kv = 15.0;
+    _posture_regularization_task = new Sai2Primitives::JointTask(_robot);
+    _posture_regularization_task->_use_velocity_saturation_flag = true;
+    _posture_regularization_task->_use_interpolation_flag = false;
+    _posture_regularization_task->_kp = 250.0;
+    _posture_regularization_task->_kv = 15.0;
     _posture_regularization_task->setDynamicDecouplingNone();
 
     _dz_hip_foot = 0.3;
 
     _ddq = VectorXd::Zero(dof);
 
-	/*
+    /*
      * End effector task
      */
-	const Vector3d control_point = Vector3d(0,0,0.01);
-	_ee_posori_task = new Sai2Primitives::PosOriTask(_robot, "link7", control_point);
-	_ee_posori_task->_kp_pos = 200.0;
-	_ee_posori_task->_kv_pos = 20.0;
-	_ee_posori_task->_kp_ori = 200.0;
-	_ee_posori_task->_kv_ori = 20.0;
-	_ee_posori_task->_use_interpolation_flag = false;
+    const Vector3d control_point = Vector3d(0,0,0.01);
+    _ee_posori_task = new Sai2Primitives::PosOriTask(_robot, "link7", control_point);
+    _ee_posori_task->_kp_pos = 200.0;
+    _ee_posori_task->_kv_pos = 20.0;
+    _ee_posori_task->_kp_ori = 200.0;
+    _ee_posori_task->_kv_ori = 20.0;
+    _ee_posori_task->_use_interpolation_flag = false;
     _ee_posori_task->reInitializeTask();
 
     _hit_height = 0.7;
@@ -203,7 +203,7 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
 
 void VolleybotController::control(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques)
 {
-	int dof = _robot->_dof;
+    int dof = _robot->_dof;
 
     /*
      * Gravity compensation
@@ -283,7 +283,7 @@ void VolleybotController::control(unsigned long long k_iter_ctrl, Eigen::VectorX
 
 void VolleybotController::legControl(Eigen::VectorXd& leg_torques, Vector3d base_accel)
 {
-	int dof = _robot->_dof;
+    int dof = _robot->_dof;
 
     _robot->JvLocalFrame(_Jv_foot_left, "LL_foot", Vector3d::Zero());
     _Jv_foot_left = _Jv_foot_left * _N_no_external;

@@ -20,12 +20,12 @@ enum State
 
 public:
 
-	VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball);
+    VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball);
 
-	void execute(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
+    void execute(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
 
-	Sai2Model::Sai2Model* _robot;
-	Sai2Model::Sai2Model* _ball;
+    Sai2Model::Sai2Model* _robot;
+    Sai2Model::Sai2Model* _ball;
 
     Sai2Primitives::JointTask* _base_task;
     Sai2Primitives::PosOriTask* _ee_posori_task;
@@ -61,11 +61,11 @@ public:
 
 private:
 
-	void legControl(Eigen::VectorXd& leg_torques, Vector3d base_accel);
+    void legControl(Eigen::VectorXd& leg_torques, Vector3d base_accel);
 
-	void plan(unsigned long long k_iter_ctrl);
+    void plan(unsigned long long k_iter_ctrl);
 
-	void control(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
+    void control(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
 
     void get_ball_state_robot_frame(Vector3d& pos, Vector3d& vel);
 

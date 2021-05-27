@@ -40,47 +40,47 @@ unsigned long long k_iter_sim = 0;
 
 int main() {
 
-	// start redis client
-	auto redis_client = RedisClient();
-	redis_client.connect();
+    // start redis client
+    auto redis_client = RedisClient();
+    redis_client.connect();
 
-	// set up signal handler
-	signal(SIGABRT, &sighandler);
-	signal(SIGTERM, &sighandler);
-	signal(SIGINT, &sighandler);
+    // set up signal handler
+    signal(SIGABRT, &sighandler);
+    signal(SIGTERM, &sighandler);
+    signal(SIGINT, &sighandler);
 
-	// load robots
+    // load robots
     Affine3d T_world_robot = Affine3d::Identity();
     T_world_robot.translation() << 0.0, -5.0, 0.5;
-	auto robot = new Sai2Model::Sai2Model(robot_file, false, T_world_robot);
-	int dof = robot->_dof;
-	robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
-	VectorXd initial_q = robot->_q;
-	robot->updateModel();
+    auto robot = new Sai2Model::Sai2Model(robot_file, false, T_world_robot);
+    int dof = robot->_dof;
+    robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
+    VectorXd initial_q = robot->_q;
+    robot->updateModel();
 
     Affine3d T_world_ball = Affine3d::Identity();
     T_world_ball.translation() << 0.0, 5.0, 3.0;
-	auto ball = new Sai2Model::Sai2Model(obj_file, false, T_world_ball);
+    auto ball = new Sai2Model::Sai2Model(obj_file, false, T_world_ball);
 
     VectorXd command_torques(dof);
     auto controller = new VolleybotController(robot, ball);
 
-	// create a timer
-	LoopTimer timer;
-	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
-	double start_time = timer.elapsedTime(); //secs
-	bool fTimerDidSleep = true;
+    // create a timer
+    LoopTimer timer;
+    timer.initializeTimer();
+    timer.setLoopFrequency(1000); 
+    double start_time = timer.elapsedTime(); //secs
+    bool fTimerDidSleep = true;
 
     k_iter_ctrl = 0;
     redis_client.set(SIMULATION_LOOP_ITERATION, std::to_string(0));
     redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(0));
 
-	while (runloop) {
-		// run controller loop when simulation loop is done (sim has caught up)
+    while (runloop) {
+        // run controller loop when simulation loop is done (sim has caught up)
         k_iter_sim = std::stoull(redis_client.get(SIMULATION_LOOP_ITERATION));
         controller_start_flag = redis_client.get(CONTROLLER_START_FLAG) == "true";
-		if (controller_start_flag && k_iter_ctrl == k_iter_sim) {
+        if (controller_start_flag && k_iter_ctrl == k_iter_sim) {
             double time = timer.elapsedTime() - start_time;
 
             // read robot state from redis
@@ -110,15 +110,15 @@ int main() {
             // tell sim we have completed control
             redis_client.set(CONTROLLER_LOOP_ITERATION, std::to_string(k_iter_ctrl));
         }
-	}
+    }
 
-	command_torques.setZero();
-	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
+    command_torques.setZero();
+    redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
 
-	double end_time = timer.elapsedTime();
+    double end_time = timer.elapsedTime();
     std::cout << "\n";
     std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
     std::cout << "Control Loop updates   : " << k_iter_ctrl << "\n";
 
-	return 0;
+    return 0;
 }
