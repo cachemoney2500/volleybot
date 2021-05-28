@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
     for(int i = 0; i<n_robots; i++) {
         T_world_robot.translation() = robot_offsets[i];
-        robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false));//, T_world_robot));
+        robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false, T_world_robot));
     }
     // robots[0]->_q(0) = -0.8;
     // robots[0]->_q(2) = 0.8;
@@ -177,7 +177,6 @@ int main(int argc, char* argv[]) {
     // load simulation world
     auto sim = new Simulation::Sai2Simulation(world_file, false);
     for(int i = 0; i<n_robots; i++) {
-        cout << robots[i] << endl;
         sim->setJointPositions(robot_names[i], robots[i]->_q);
 
         sim->setJointVelocities(robot_names[i], robots[i]->_dq);
