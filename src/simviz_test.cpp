@@ -24,8 +24,8 @@ using namespace Eigen;
 const string world_file = "./resources/world_test.urdf";
 
 const vector<string> robot_files = {
-    "./resources/legged_panda.urdf",
-    "./resources/legged_panda.urdf"
+    "./resources/legged_panda_red.urdf",
+    "./resources/legged_panda_blue.urdf"
 };
 const vector<string> robot_names = {
     "mmp_panda1",
@@ -145,18 +145,18 @@ int main(int argc, char* argv[]) {
         T_world_robot.translation() = robot_offsets[i];
         robots.push_back(new Sai2Model::Sai2Model(robot_files[i], false, T_world_robot));
     }
-    // robots[0]->_q(0) = -0.8;
-    // robots[0]->_q(2) = 0.8;
-    // robots[0]->_q(3) = 45*M_PI/180;
-    // robots[0]->_q(4) = -90*M_PI/180;
-    // robots[0]->_q(5) = 45*M_PI/180;
+    robots[0]->_q(0) = -0.8;
+    robots[0]->_q(2) = 0.8;
+    robots[0]->_q(3) = 45*M_PI/180;
+    robots[0]->_q(4) = -90*M_PI/180;
+    robots[0]->_q(5) = 45*M_PI/180;
     robots[0]->updateModel();
 
-    // robots[1]->_q(0) = 0.8;
-    // robots[1]->_q(2) = 0.8;
-    // robots[1]->_q(3) = 45*M_PI/180;
-    // robots[1]->_q(4) = -90*M_PI/180;
-    // robots[1]->_q(5) = 45*M_PI/180;
+    robots[1]->_q(0) = 0.8;
+    robots[1]->_q(2) = 0.8;
+    robots[1]->_q(3) = 45*M_PI/180;
+    robots[1]->_q(4) = -90*M_PI/180;
+    robots[1]->_q(5) = 45*M_PI/180;
     robots[1]->updateModel();
 
     // load robot objects
@@ -252,7 +252,7 @@ int main(int argc, char* argv[]) {
     thread sim_thread(simulation, robots, object, sim, ui_force_widget);
 
     // initialize glew
-    //glewInitialize();
+    glewInitialize();
 
     // while window is open:
     while (!glfwWindowShouldClose(window))// && fSimulationRunning)

@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
     thread sim_thread(simulation, robot, object, sim, ui_force_widget);
 
     // initialize glew
-    //glewInitialize();
+    glewInitialize();
 
     // while window is open:
     while (!glfwWindowShouldClose(window))// && fSimulationRunning)
