@@ -21,18 +21,30 @@ VolleybotController::VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model:
     _base_task->_saturation_velocity(3) = 2.0;
 
     VectorXd kp_base(dof);
-    kp_base << 250.0 * _robot->_M(0,0),
-               250.0 * _robot->_M(1,1),
-               250.0 * _robot->_M(2,2),
-               250.0 * _robot->_M(3,3),
-               VectorXd::Ones(dof - 4);
+    // kp_base << 250.0 * _robot->_M(0,0),
+    //            250.0 * _robot->_M(1,1),
+    //            250.0 * _robot->_M(2,2),
+    //            250.0 * _robot->_M(3,3),
+    //            VectorXd::Ones(dof - 4);
+
+   kp_base << 300.0 * _robot->_M(0,0),
+              300.0 * _robot->_M(1,1),
+              300.0 * _robot->_M(2,2),
+              300.0 * _robot->_M(3,3),
+              VectorXd::Ones(dof - 4);
 
     VectorXd kv_base(dof);
-    kv_base << 15.0 * _robot->_M(0,0),
-               15.0 * _robot->_M(1,1),
-               15.0 * _robot->_M(2,2),
-               15.0 * _robot->_M(3,3),
-               VectorXd::Ones(dof - 4);
+    // kv_base << 15.0 * _robot->_M(0,0),
+    //            15.0 * _robot->_M(1,1),
+    //            15.0 * _robot->_M(2,2),
+    //            15.0 * _robot->_M(3,3),
+    //            VectorXd::Ones(dof - 4);
+
+   kv_base << 100.0 * _robot->_M(0,0),
+              100.0 * _robot->_M(1,1),
+              100.0 * _robot->_M(2,2),
+              100.0 * _robot->_M(3,3),
+              VectorXd::Ones(dof - 4);
 
     _base_task->setNonIsotropicGains(kp_base, kv_base, VectorXd::Zero(dof));
     _base_task->setDynamicDecouplingNone();
@@ -158,13 +170,13 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
     else if(_state == BALL_TRACKING)
     {
         _desired_position.head(3) = _robot->_q.head(3) + (pos_pred - pos_ee_cur);
-        //_R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
-        if (pos_pred(2)>0){
-            pos_land_des << 0,-4.5,0;//_hit_height;
+        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
+        if (pos_pred(1)>0){
+            pos_land_des << 0,-5,0;//_hit_height;
         }else{
-            pos_land_des << 0,4.5,0;//_hit_height;
+            pos_land_des << 0,5,0;//_hit_height;
         }
-        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, pos_land_des, R_ee);
+        //_R_ee_desired = compute_des_rotation(pos_pred, vel_pred, pos_land_des, R_ee);
 
         Vector3d v_ball_ee = R_ee.transpose() * vel;
         Vector3d vel_world;
@@ -405,20 +417,7 @@ void VolleybotController::forward_prediction(Vector3d pos, Vector3d vel, Vector3
                 vel(2) - 9.81*dt;
 }
 
-// Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d vel_des, Matrix3d R_init){
-//   Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
-//   Matrix3d R_des = R_init;
-//   R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
-//   R_des.col(2) = z_des.normalized();
-//   R_des.col(0) = R_des.col(1).cross(R_des.col(2));
-//   return R_des;
-// }
-
-Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d pos_des, Matrix3d R_init){
-  double tf = -2*vel_incident(2)/9.81;
-  Vector3d a;
-  a << 0,0,-9.81;
-  Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
+Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d vel_des, Matrix3d R_init){
   Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
   Matrix3d R_des = R_init;
   R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
@@ -426,3 +425,16 @@ Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector
   R_des.col(0) = R_des.col(1).cross(R_des.col(2));
   return R_des;
 }
+
+// Matrix3d VolleybotController::compute_des_rotation(Vector3d pos_incident, Vector3d vel_incident, Vector3d pos_des, Matrix3d R_init){
+//   double tf = -2*vel_incident(2)/9.81;
+//   Vector3d a;
+//   a << 0,0,-9.81;
+//   Vector3d vel_des = 1/tf*(pos_des-pos_incident-.5*a*pow(tf,2.0));
+//   Vector3d z_des = .5*(-vel_incident.normalized() + vel_des.normalized());
+//   Matrix3d R_des = R_init;
+//   R_des.col(1) = z_des.cross(R_des.col(0)).normalized();
+//   R_des.col(2) = z_des.normalized();
+//   R_des.col(0) = R_des.col(1).cross(R_des.col(2));
+//   return R_des;
+// }
