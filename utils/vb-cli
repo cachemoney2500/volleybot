@@ -11,7 +11,7 @@ elif [ "$1" == "start" ]; then
     redis-cli set cs225a::simulation::controller_start_flag "true"
     echo "Started simulation"
 elif [ "$1" == "stop" ]; then
-    redis-cli set cs225a::simulation::controller_start_flag "stop"
+    redis-cli set cs225a::simulation::controller_start_flag "false"
     echo "Stopped simulation"
 else
     echo "unknown argument input"

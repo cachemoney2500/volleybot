@@ -20,9 +20,11 @@ enum State
 
 public:
 
-    VolleybotController(Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball);
+    VolleybotController(int robot_number, Sai2Model::Sai2Model* robot, Sai2Model::Sai2Model* ball);
 
     void execute(unsigned long long k_iter_ctrl, Eigen::VectorXd& output_torques);
+
+    int _robot_number;
 
     Sai2Model::Sai2Model* _robot;
     Sai2Model::Sai2Model* _ball;
@@ -74,6 +76,8 @@ private:
     void forward_prediction(Vector3d pos, Vector3d vel, Vector3d& pos_pred, Vector3d& vel_pred, double dt);
 
     Matrix3d compute_des_rotation(Vector3d vel_incident, Vector3d pos_incident, Vector3d pos_des, Matrix3d R_init);
+
+    bool ball_incoming(Vector3d pos_pred, Vector3d pos_ee_cur);
 
 };
 

@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
                         * AngleAxisd(0.0, Vector3d::UnitY())
                         * AngleAxisd(0.0, Vector3d::UnitX());
     Affine3d T_world_robot = Affine3d::Identity();
-    T_world_robot.linear() = R_world_robot;
+    //T_world_robot.linear() = R_world_robot;
 
     for(int i = 0; i<n_robots; i++) {
         T_world_robot.translation() = robot_offsets[i];
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
 
     Affine3d T_world_object = Affine3d::Identity();
     T_world_object.translation() = object_offset;
-    T_world_object.linear() = R_world_object;
+    //T_world_object.linear() = R_world_object;
 
     auto object = new Sai2Model::Sai2Model(obj_file, false, T_world_object);
     object->_q(3) = 5.0;
@@ -427,7 +427,8 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
     double kvj = 10;  // velocity damping for ui force drag
 
     // setup redis client data container for pipeset (batch write)
-    std::vector<std::pair<std::string, std::string>> redis_data(6);  // set with the number of keys to write
+    size_t n_redis_update_keys = n_robots * 3 + 3;
+    std::vector<std::pair<std::string, std::string>> redis_data(n_redis_update_keys);
 
     fSimulationRunning = true;
     while (fSimulationRunning) {
@@ -447,9 +448,8 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
             ball_toss_pos = redis_client.getEigenMatrixJSON(BALL_TOSS_POS_KEY);
             ball_toss_vel = redis_client.getEigenMatrixJSON(BALL_TOSS_VEL_KEY);
 
-            VectorXd ball_pos = redis_client.getEigenMatrixJSON(BALL_POS_KEY);
-            object->_q = ball_pos;
-            object->_dq = Vector3d::Zero();
+            object->_q = ball_toss_pos;
+            object->_dq = ball_toss_vel;
             sim->setJointPositions(obj_name, object->_q);
             sim->setJointVelocities(obj_name, object->_dq);
             object->updateModel();
@@ -499,14 +499,15 @@ void simulation(vector<Sai2Model::Sai2Model*> robots, Sai2Model::Sai2Model* obje
 
                 // publish all redis keys at once to reduce multiple redis calls that slow down simulation
                 // shown explicitly here, but you can define a helper function to publish data
+                int redis_idx = 0;
                 for(int i=0; i<n_robots; i++){
-                redis_data.at(0) = std::pair<string, string>(JOINT_ANGLES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_q));
-                redis_data.at(1) = std::pair<string, string>(JOINT_VELOCITIES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_dq));
-                redis_data.at(2) = std::pair<string, string>(JOINT_ACCEL_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_ddq));
+                redis_data.at(redis_idx++) = std::pair<string, string>(JOINT_ANGLES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_q));
+                redis_data.at(redis_idx++) = std::pair<string, string>(JOINT_VELOCITIES_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_dq));
+                redis_data.at(redis_idx++) = std::pair<string, string>(JOINT_ACCEL_KEYS[i], redis_client.encodeEigenMatrixJSON(robots[i]->_ddq));
                 }
-                redis_data.at(3) = std::pair<string, string>(BALL_POS_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
-                redis_data.at(4) = std::pair<string, string>(BALL_VEL_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
-                redis_data.at(5) = std::pair<string, string>(SIMULATION_LOOP_ITERATION, std::to_string(k_iter_sim)); // tell controller sim loop is done
+                redis_data.at(redis_idx++) = std::pair<string, string>(BALL_POS_KEY, redis_client.encodeEigenMatrixJSON(object->_q));
+                redis_data.at(redis_idx++) = std::pair<string, string>(BALL_VEL_KEY, redis_client.encodeEigenMatrixJSON(object->_dq));
+                redis_data.at(redis_idx++) = std::pair<string, string>(SIMULATION_LOOP_ITERATION, std::to_string(k_iter_sim)); // tell controller sim loop is done
 
                 redis_client.pipeset(redis_data);
 
