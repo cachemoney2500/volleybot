@@ -1,5 +1,5 @@
 ADD_EXECUTABLE (simviz_test simviz_test.cpp ${CS225A_COMMON_SOURCE})
-ADD_LIBRARY (volleybot_controller VolleybotController.cpp ${CS225A_COMMON_SOURCE})
+ADD_LIBRARY (volleybot_controller VolleybotController_test.cpp ${CS225A_COMMON_SOURCE})
 ADD_EXECUTABLE (controller_test controller_test.cpp ${CS225A_COMMON_SOURCE})
 
 # and link the library against the executable

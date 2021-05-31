@@ -101,7 +101,7 @@ int main() {
     vector<VolleybotController *> controllers;
     for(int i=0;i<n_robots; i++){
         command_torques.push_back(VectorXd(dof));
-        controllers.push_back(new VolleybotController(i, robots[i], ball));
+        controllers.push_back(new VolleybotController(robots[i], ball,i));
     }
 
     // create a timer
