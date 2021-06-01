@@ -34,11 +34,16 @@ const vector<string> robot_names = {
 
 const string obj_file = "./resources/volleyBall.urdf";
 const string obj_name = "ball";
-const string camera_name = "camera_fixed";
+const vector<string> camera_names = {
+	"camera_center",
+	"camera_back"
+};
+string camera_name = camera_names[0];
 const string ee_link_name = "link7";
 const string obj_link_name = "link6";
 
 const int n_robots = robot_names.size();
+int cam_counter = 0;
 
 RedisClient redis_client;
 
@@ -99,6 +104,7 @@ bool fTransZp = false;
 bool fTransZn = false;
 bool fRotPanTilt = false;
 bool fRobotLinkSelect = false;
+bool fCamSwitch = false;
 bool fToss = false;
 
 Vector3d ball_toss_pos = Vector3d::Zero();
@@ -124,7 +130,8 @@ int main(int argc, char* argv[]) {
     auto graphics = new Sai2Graphics::Sai2Graphics(world_file, true);
     Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
     graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
-    graphics->getCamera(camera_name)->setClippingPlanes(0.01, 30.0);
+    graphics->getCamera(camera_names[0])->setClippingPlanes(0.01, 30.0);
+    graphics->getCamera(camera_names[1])->setClippingPlanes(0.01, 30.0);
 
     // load robots
     vector<Sai2Model::Sai2Model*> robots;
@@ -281,7 +288,7 @@ int main(int argc, char* argv[]) {
         glfwPollEvents();
 
         // move scene camera as required
-        // graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
+        graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
         Eigen::Vector3d cam_depth_axis;
         cam_depth_axis = camera_lookat - camera_pos;
         cam_depth_axis.normalize();
@@ -365,6 +372,12 @@ int main(int argc, char* argv[]) {
                 //TODO: this behavior might be wrong. this will allow the user to click elsewhere in the screen
                 // then drag the mouse over a link to start applying a force to it.
             }
+        }
+        if (fCamSwitch)
+        {
+        	cam_counter += 1;
+        	int num = cam_counter%2;
+    		camera_name = camera_names[num];
         }
         if(fToss) // retoss a ball
         {
@@ -584,6 +597,13 @@ void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
             break;
         case GLFW_KEY_Z:
             fTransZn = set;
+            break;
+        case GLFW_KEY_C:
+        	case GLFW_KEY_1:
+        		camera_name = camera_names[0];
+        	break;
+        	case GLFW_KEY_2:
+        		camera_name = camera_names[1];
             break;
         case GLFW_KEY_T: // re-toss a ball
             fToss = set;
