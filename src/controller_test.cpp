@@ -105,8 +105,8 @@ int main() {
     }
 
     vector<Vector3d> vel_hit = {
-        Vector3d(0.0, 0.0, 0.5),
-        Vector3d(0.0, -1.0, 0.5)
+        Vector3d(0.0, 0.3, 0.2),
+        Vector3d(0.0, -0.3, 0.2)
     };
 
     // create a timer

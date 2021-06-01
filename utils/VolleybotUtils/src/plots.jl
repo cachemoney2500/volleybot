@@ -59,7 +59,11 @@ function plot(c, ::Val{:ball})
             plot!(c.time, c.balldq[2])
             plot!(c.time, c.balldq[3])
         end,
-        layout=(2,1), size=(600, 800)
+        begin
+            e = .5*(c.balldq[1].^2 + c.balldq[2].^2 + c.balldq[3].^2) + 9.81*c.ballq[3]
+            plot(c.time, e)
+        end,
+        layout=(3,1), size=(600, 800)
        )
 end
 
