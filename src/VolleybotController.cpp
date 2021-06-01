@@ -117,6 +117,8 @@ VolleybotController::VolleybotController(int robot_number, Sai2Model::Sai2Model*
     _pos_ee_desired_hip = Vector3d::Zero();
     _R_ee_desired = Matrix3d::Identity();
 
+    _vel_hit = Vector3d(0.0, 0.0, 1.5);
+
     _state = IDLE;
 }
 
@@ -141,20 +143,23 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
     Matrix3d R_ee;
     _robot->rotation(R_ee, "link7");
 
+    Vector3d v_ball_ee = R_ee.transpose() * vel;
+
     if(_state == IDLE)
     {
         if(ball_incoming(pos_pred, pos_ee_cur))
         {
             _state = BALL_TRACKING;
-            _hit_height = 0.6 + 0.3 * _uniform_dist(_generator);
+            _hit_height = 0.675 + 0.3 * _uniform_dist(_generator);
             cout << "[ robot " << _robot_number << " ] " << "setting hit height to " << _hit_height << endl;
             cout << "[ robot " << _robot_number << " ] " <<  "state transition to BALL_TRACKING" << endl;
         }
     }
     else if(_state == BALL_TRACKING)
     {
-        _desired_position.head(3) = _robot->_q.head(3) + (pos_pred - pos_ee_cur);
-        Vector3d vel_des = compute_des_velocity(pos_pred, vel_pred, pos_des, R_ee);
+        Vector3d pos_pred_adjusted = pos_pred - _vel_hit * 0.05;
+        _desired_position.head(3) = _robot->_q.head(3) + (pos_pred_adjusted - pos_ee_cur);
+        //Vector3d vel_des = compute_des_velocity(pos_pred, vel_pred, pos_des, R_ee);
         _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
         //if (pos_pred(2)>0){
         //    pos_land_des << 0,-4.5,0;//_hit_height;
@@ -163,8 +168,21 @@ void VolleybotController::plan(unsigned long long k_iter_ctrl)
         //}
         //_R_ee_desired = compute_des_rotation(pos_pred, vel_pred, pos_land_des, R_ee);
 
-        Vector3d v_ball_ee = R_ee.transpose() * vel;
-        if(v_ball_ee(2) >= 0.0 && (pos - pos_ee_cur).norm() <= 0.5)
+        //if((pos + vel.normalized() * 0.4 - pos_ee_cur).norm() <= 0.2)
+        if(tof <= 0.1)
+        {
+            _state = HIT;
+            cout << "[ robot " << _robot_number << " ] " <<  "state transition to HIT" << endl;
+        }
+    }
+    else if(_state == HIT)
+    {
+        _R_ee_desired = compute_des_rotation(pos_pred, vel_pred, -vel_pred, R_ee);
+        //_desired_position.head(3) = _robot->_q.head(3) + (pos_pred_adjusted - pos_ee_cur);
+        _desired_position(0) = _robot->_q(0) + _base_task->_kv_mat(0,0)/_base_task->_kp_mat(0,0) * _vel_hit(0);
+        _desired_position(1) = _robot->_q(1) + _base_task->_kv_mat(1,1)/_base_task->_kp_mat(1,1) * _vel_hit(1);
+        _desired_position(2) = _robot->_q(2) + _base_task->_kv_mat(2,2)/_base_task->_kp_mat(2,2) * _vel_hit(2);
+        if(v_ball_ee(2) >= 0.1 && (pos - pos_ee_cur).norm() <= 2.0)
         {
             _state = IDLE;
             _R_ee_desired = Matrix3d::Identity();
@@ -441,7 +459,7 @@ bool VolleybotController::ball_incoming(Vector3d pos_pred, Vector3d pos_ee_cur)
     return false;
 }
 
-Vector3d VolleybotController::compute_des_velocity(Vector3d pos_pred, Vector3d vel_pred, Vector3d, pos_des, Matrix3d R_ee)
-{
-    Matrix2d jac = Matrix2d::Zero();
-}
+//Vector3d VolleybotController::compute_des_velocity(Vector3d pos_pred, Vector3d vel_pred, Vector3d pos_des, Matrix3d R_ee)
+//{
+//    Matrix2d jac = Matrix2d::Zero();
+//}

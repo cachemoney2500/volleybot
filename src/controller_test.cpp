@@ -104,6 +104,11 @@ int main() {
         controllers.push_back(new VolleybotController(i, robots[i], ball));
     }
 
+    vector<Vector3d> vel_hit = {
+        Vector3d(0.0, 0.0, 0.5),
+        Vector3d(0.0, -1.0, 0.5)
+    };
+
     // create a timer
     LoopTimer timer;
     timer.initializeTimer();
@@ -145,6 +150,7 @@ int main() {
                 // control!
                 controllers[i]->_desired_position = q_specified;
                 controllers[i]->_pos_ee_desired_hip = hit_pos;
+                controllers[i]->_vel_hit = vel_hit[i];
                 controllers[i]->_ddq = redis_client.getEigenMatrixJSON(JOINT_ACCEL_KEYS[i]);
                 controllers[i]->execute(k_iter_ctrl, command_torques[i]);
 

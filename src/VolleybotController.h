@@ -15,7 +15,7 @@ enum State
 {
     IDLE,
     BALL_TRACKING,
-    COMMANDED_GOAL,
+    HIT,
 };
 
 public:
@@ -53,6 +53,7 @@ public:
     double _hit_height;
     Vector3d _pos_ee_desired_hip;
     Matrix3d _R_ee_desired;
+    Vector3d _vel_hit;
 
     VectorXd _ddq;
 

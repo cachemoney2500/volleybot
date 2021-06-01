@@ -62,3 +62,18 @@ function plot(c, ::Val{:ball})
         layout=(2,1), size=(600, 800)
        )
 end
+
+function plot(c, ::Val{:bounce}, i)
+    plot(
+        begin
+            plot(c.time, c.ballq[i], label="ball")
+            plot!(c.time, c.q[i], label="robot")
+            plot!(xlabel="time", ylabel="pos")
+        end,
+        begin
+            plot(c.time, c.balldq[i], label="ball")
+            plot!(c.time, c.dq[i], label="robot")
+            plot!(xlabel="time", ylabel="vel")
+        end, layout=(2, 1), size=(600, 800)
+   )
+end
